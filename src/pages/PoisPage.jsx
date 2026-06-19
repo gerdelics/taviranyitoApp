@@ -56,6 +56,7 @@ export default function PoisPage({ role, pairKey }) {
   }, [pois, editing])
 
   function handleLongPress(lat, lon) {
+    if (role === 'driver') return
     if (placingApproach && editing) {
       setEditing((prev) => ({ ...prev, approach: { lat, lon } }))
       setPlacingApproach(false)
@@ -65,6 +66,12 @@ export default function PoisPage({ role, pairKey }) {
     if (poi) {
       setEditing(draftFromPoi(poi, true))
     }
+  }
+
+  function handleMarkDone() {
+    if (!editing) return
+    editPoi(editing.id, { done: !editing.done })
+    setEditing(null)
   }
 
   function handleMarkerClick(id) {
@@ -113,6 +120,7 @@ export default function PoisPage({ role, pairKey }) {
         currentLocation={role === 'driver' ? location : null}
         driverLocation={driverLocation}
         defaultZoom={DEFAULT_ZOOM}
+        role={role}
         onLongPress={handleLongPress}
         onMarkerClick={handleMarkerClick}
         onMovePoi={(id, lat, lon) => editPoi(id, { lat, lon })}
@@ -140,6 +148,7 @@ export default function PoisPage({ role, pairKey }) {
         open={Boolean(editing) && !placingApproach}
         draft={editing}
         number={editingLabel}
+        role={role}
         isMobile={isMobile}
         onChange={handleDraftChange}
         onNavigate={navigateToPoi}
@@ -147,6 +156,7 @@ export default function PoisPage({ role, pairKey }) {
         onSave={handleSave}
         onCancel={handleCancel}
         onDelete={handleDelete}
+        onMarkDone={handleMarkDone}
       />
     </div>
   )

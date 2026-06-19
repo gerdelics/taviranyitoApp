@@ -2,13 +2,11 @@ import { useState } from 'react'
 import OverlayModal from './OverlayModal'
 import { POI_TYPES } from '../../utils/poiTypes'
 
-// Fully draft-controlled marker editor. All values live in the parent's `draft`
-// and are only persisted when the parent handles `onSave`; `onCancel` discards
-// them (and drops the marker entirely if it was just placed).
 export default function PoiActionsDialog({
   open,
   draft,
   number,
+  role,
   isMobile = false,
   onChange,
   onNavigate,
@@ -16,6 +14,7 @@ export default function PoiActionsDialog({
   onSave,
   onCancel,
   onDelete,
+  onMarkDone,
 }) {
   const [copyState, setCopyState] = useState(null)
 
@@ -23,7 +22,6 @@ export default function PoiActionsDialog({
     return null
   }
 
-  const navigateLabel = isMobile ? 'Open in Google Maps' : 'Copy Google Maps link'
   const title = number === '-' ? 'Marker (done)' : `Marker #${number}`
   const inputClass =
     'w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none'
@@ -37,13 +35,86 @@ export default function PoiActionsDialog({
     setCopyState(result === true ? 'copied' : 'error')
   }
 
+  const typeLabel = POI_TYPES.find((t) => t.value === draft.type)?.label ?? draft.type
+
+  if (role === 'driver') {
+    return (
+      <OverlayModal open={open} onClose={onCancel} title={title} showHeaderClose={false}>
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-slate-400">
+            {draft.lat.toFixed(5)}, {draft.lon.toFixed(5)}
+          </p>
+
+          <div className="flex flex-col gap-1">
+            <span className={labelClass}>Type</span>
+            <span className="text-sm text-slate-100">{typeLabel}</span>
+          </div>
+
+          {draft.description ? (
+            <div className="flex flex-col gap-1">
+              <span className={labelClass}>Description</span>
+              <span className="text-sm text-slate-100">{draft.description}</span>
+            </div>
+          ) : null}
+
+          {draft.approach ? (
+            <div className="flex flex-col gap-1">
+              <span className={labelClass}>Ráfordító</span>
+              <span className="text-sm text-slate-200">
+                {draft.approach.lat.toFixed(5)}, {draft.approach.lon.toFixed(5)}
+              </span>
+            </div>
+          ) : null}
+
+          <div className="flex flex-col gap-1">
+            <span className={labelClass}>Státusz</span>
+            <span className={`text-sm font-bold ${draft.done ? 'text-emerald-400' : 'text-yellow-400'}`}>
+              {draft.done ? 'Kész' : 'Folyamatban'}
+            </span>
+          </div>
+
+          <div>
+            <button
+              type="button"
+              onClick={handleNavigate}
+              className="w-full rounded-lg bg-cyan-600 px-4 py-2 text-sm font-bold text-white hover:bg-cyan-500"
+            >
+              Drive with Google
+            </button>
+            {copyState === 'copied' ? (
+              <p className="mt-1 text-center text-xs text-emerald-400">Copied!</p>
+            ) : null}
+            {copyState === 'error' ? (
+              <p className="mt-1 text-center text-xs text-red-400">Copy failed</p>
+            ) : null}
+          </div>
+
+          <button
+            type="button"
+            onClick={onMarkDone}
+            className={`w-full rounded-lg px-4 py-2 text-sm font-bold text-white ${
+              draft.done ? 'bg-slate-700 hover:bg-slate-600' : 'bg-emerald-600 hover:bg-emerald-500'
+            }`}
+          >
+            {draft.done ? 'Mark as not done' : 'Mark as done'}
+          </button>
+
+          <button
+            type="button"
+            onClick={onCancel}
+            className="w-full rounded-lg border border-slate-700 px-4 py-2 text-sm font-bold text-slate-200 hover:text-slate-100"
+          >
+            Bezár
+          </button>
+        </div>
+      </OverlayModal>
+    )
+  }
+
+  const navigateLabel = isMobile ? 'Open in Google Maps' : 'Copy Google Maps link'
+
   return (
-    <OverlayModal
-      open={open}
-      onClose={onCancel}
-      title={title}
-      showHeaderClose={false}
-    >
+    <OverlayModal open={open} onClose={onCancel} title={title} showHeaderClose={false}>
       <div className="flex flex-col gap-4">
         <p className="text-sm text-slate-400">
           {draft.lat.toFixed(5)}, {draft.lon.toFixed(5)}

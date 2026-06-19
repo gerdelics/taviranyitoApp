@@ -164,6 +164,7 @@ export default function PoiMap({
   currentLocation,
   driverLocation,
   defaultZoom = 14,
+  role,
   onLongPress,
   onMarkerClick,
   onMovePoi,
@@ -421,7 +422,7 @@ export default function PoiMap({
     <div className={`relative ${className ?? ''}`}>
       <div ref={containerRef} className="h-full w-full" />
 
-      {placingApproach ? null : (
+      {role !== 'driver' && !placingApproach ? (
         <div className="absolute right-3 top-3 z-[1000] flex flex-col gap-2">
           {pois.length > 0 ? (
             <button
@@ -440,9 +441,9 @@ export default function PoiMap({
             Add new marker
           </button>
         </div>
-      )}
+      ) : null}
 
-      {placingApproach ? (
+      {role !== 'driver' && placingApproach ? (
         <div className="absolute left-1/2 top-3 z-[1000] flex -translate-x-1/2 items-center gap-3 rounded-full bg-cyan-600/90 px-4 py-1.5 text-xs font-bold text-white shadow">
           <span>Long-press the map to place the ráfordító</span>
           <button
@@ -453,11 +454,13 @@ export default function PoiMap({
             Cancel
           </button>
         </div>
-      ) : (
+      ) : null}
+
+      {role !== 'driver' && !placingApproach ? (
         <div className="pointer-events-none absolute bottom-3 left-1/2 z-[1000] -translate-x-1/2 rounded-full bg-slate-900/80 px-3 py-1 text-xs text-slate-300">
           Long-press the map to drop a marker · long-press a marker to move it
         </div>
-      )}
+      ) : null}
     </div>
   )
 }
