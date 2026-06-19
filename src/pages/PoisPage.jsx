@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useGeolocation } from '../hooks/useGeolocation'
-import { usePois } from '../hooks/usePois'
+import { useFirebasePois } from '../hooks/useFirebasePois'
+import { useDriverPosition } from '../hooks/useDriverPosition'
 import { AddMarkerDialog, PoiActionsDialog, PoiMap } from '../components'
 import { isMobileDevice, navigateToPoi } from '../utils/poiNavigation'
 
@@ -19,49 +20,41 @@ function draftFromPoi(poi, isNew) {
   }
 }
 
-export default function PoisPage() {
+export default function PoisPage({ role, pairKey }) {
   const { location, startWatching, stopWatching } = useGeolocation()
-  const { pois, addPoi, editPoi, deletePoi, clearAll, getNearestId } = usePois()
+  const { pois, addPoi, editPoi, deletePoi, clearAll, getNearestId } = useFirebasePois(pairKey)
+  const driverLocation = useDriverPosition(pairKey, role, location)
 
-  // The marker being edited lives entirely in this draft until Save. A freshly
-  // dropped marker is added to the store so it shows on the map, but it is
-  // removed again on Cancel/outside-click, so nothing is kept unless saved.
   const [editing, setEditing] = useState(null)
   const [placingApproach, setPlacingApproach] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
 
-  // Watch GPS while the page is open so the nearest-marker colour stays live.
+  // GPS only runs for the driver role
   useEffect(() => {
+    if (role !== 'driver') return
     startWatching()
     return () => stopWatching()
-  }, [startWatching, stopWatching])
+  }, [role, startWatching, stopWatching])
 
   const isMobile = useMemo(() => isMobileDevice(), [])
 
-  const nearestId = useMemo(() => getNearestId(location), [getNearestId, location])
+  // Nearest marker highlight only makes sense when GPS is active (driver mode)
+  const nearestId = useMemo(
+    () => getNearestId(role === 'driver' ? location : null),
+    [getNearestId, role, location],
+  )
 
-  // Label shown for the marker being edited, following the same rule as the map
-  // (done markers show "-"; not-done ones are numbered in order). The draft's
-  // done state is used for the edited marker so the label updates immediately.
   const editingLabel = useMemo(() => {
-    if (!editing) {
-      return ''
-    }
+    if (!editing) return ''
     let sequence = 0
     for (const poi of pois) {
       const isDone = poi.id === editing.id ? editing.done : poi.done
-      if (!isDone) {
-        sequence += 1
-      }
-      if (poi.id === editing.id) {
-        return isDone ? '-' : String(sequence)
-      }
+      if (!isDone) sequence += 1
+      if (poi.id === editing.id) return isDone ? '-' : String(sequence)
     }
     return ''
   }, [pois, editing])
 
-  // A map long-press either places the ráfordító for the marker being edited, or
-  // (the default) drops a new marker and opens its draft dialog.
   function handleLongPress(lat, lon) {
     if (placingApproach && editing) {
       setEditing((prev) => ({ ...prev, approach: { lat, lon } }))
@@ -86,9 +79,7 @@ export default function PoisPage() {
   }
 
   function handleSave() {
-    if (!editing) {
-      return
-    }
+    if (!editing) return
     editPoi(editing.id, {
       type: editing.type,
       description: editing.description,
@@ -99,8 +90,6 @@ export default function PoisPage() {
     setPlacingApproach(false)
   }
 
-  // Cancel (or outside-click) discards the edits. A just-placed marker that was
-  // never saved is removed entirely.
   function handleCancel() {
     if (editing?.isNew) {
       deletePoi(editing.id)
@@ -110,9 +99,7 @@ export default function PoisPage() {
   }
 
   function handleDelete() {
-    if (editing) {
-      deletePoi(editing.id)
-    }
+    if (editing) deletePoi(editing.id)
     setEditing(null)
     setPlacingApproach(false)
   }
@@ -123,7 +110,8 @@ export default function PoisPage() {
         className="h-full w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-900"
         pois={pois}
         nearestId={nearestId}
-        currentLocation={location}
+        currentLocation={role === 'driver' ? location : null}
+        driverLocation={driverLocation}
         defaultZoom={DEFAULT_ZOOM}
         onLongPress={handleLongPress}
         onMarkerClick={handleMarkerClick}
@@ -138,7 +126,11 @@ export default function PoisPage() {
       <AddMarkerDialog
         key={addOpen ? 'add-open' : 'add-closed'}
         open={addOpen}
-        defaultCoords={location ? `${location.lat.toFixed(5)}, ${location.lon.toFixed(5)}` : ''}
+        defaultCoords={
+          role === 'driver' && location
+            ? `${location.lat.toFixed(5)}, ${location.lon.toFixed(5)}`
+            : ''
+        }
         onAdd={addPoi}
         onClose={() => setAddOpen(false)}
       />

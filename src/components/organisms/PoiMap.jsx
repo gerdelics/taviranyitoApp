@@ -162,6 +162,7 @@ export default function PoiMap({
   pois = [],
   nearestId = null,
   currentLocation,
+  driverLocation,
   defaultZoom = 14,
   onLongPress,
   onMarkerClick,
@@ -177,6 +178,8 @@ export default function PoiMap({
   const markersLayerRef = useRef(null)
   const currentMarkerRef = useRef(null)
   const centeredRef = useRef(false)
+  const driverMarkerRef = useRef(null)
+  const driverCenteredRef = useRef(false)
 
   // Keep latest callbacks/data reachable from the long-press handlers without
   // re-binding native listeners on every render.
@@ -292,6 +295,8 @@ export default function PoiMap({
       markersLayerRef.current = null
       currentMarkerRef.current = null
       centeredRef.current = false
+      driverMarkerRef.current = null
+      driverCenteredRef.current = false
       if (mountedMap) {
         mountedMap.remove()
       }
@@ -378,6 +383,39 @@ export default function PoiMap({
       centeredRef.current = true
     }
   }, [currentLocation])
+
+  // Driver's shared position marker (visible to the controller as an orange dot)
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    const hasFix =
+      typeof driverLocation?.lat === 'number' && typeof driverLocation?.lon === 'number'
+
+    if (!hasFix) {
+      if (driverMarkerRef.current) {
+        map.removeLayer(driverMarkerRef.current)
+        driverMarkerRef.current = null
+      }
+      return
+    }
+
+    const latLng = [driverLocation.lat, driverLocation.lon]
+    if (!driverMarkerRef.current) {
+      driverMarkerRef.current = L.circleMarker(latLng, {
+        radius: 9,
+        color: '#f97316',
+        fillColor: '#f97316',
+        fillOpacity: 0.95,
+      }).addTo(map)
+      if (!driverCenteredRef.current) {
+        map.setView(latLng, map.getZoom(), { animate: false })
+        driverCenteredRef.current = true
+      }
+    } else {
+      driverMarkerRef.current.setLatLng(latLng)
+    }
+  }, [driverLocation])
 
   return (
     <div className={`relative ${className ?? ''}`}>
