@@ -2,17 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import { ref as dbRef, onValue, set } from 'firebase/database'
 import { db } from '../firebase'
 
-const WRITE_INTERVAL_MS = 2000
-
-export function useDriverPosition(pairKey, role, location) {
+export function useDriverPosition(pairKey, role, location, writeIntervalMs = 2000) {
   const [driverPosition, setDriverPosition] = useState(null)
   const lastWriteRef = useRef(0)
 
-  // Driver: push own GPS position to Firebase (max once per 2s)
+  // Driver: push own GPS position to Firebase (rate-limited by writeIntervalMs)
   useEffect(() => {
     if (role !== 'driver' || !pairKey || !location) return
     const now = Date.now()
-    if (now - lastWriteRef.current < WRITE_INTERVAL_MS) return
+    if (now - lastWriteRef.current < writeIntervalMs) return
     lastWriteRef.current = now
     set(dbRef(db, `taviranyito/${pairKey}/driverPosition`), {
       lat: location.lat,
@@ -20,7 +18,7 @@ export function useDriverPosition(pairKey, role, location) {
       accuracy: location.accuracy,
       timestamp: now,
     })
-  }, [pairKey, role, location])
+  }, [pairKey, role, location, writeIntervalMs])
 
   // Controller: subscribe to driver's shared position
   useEffect(() => {

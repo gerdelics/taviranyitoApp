@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useGeolocation } from '../hooks/useGeolocation'
 import { useFirebasePois } from '../hooks/useFirebasePois'
 import { useDriverPosition } from '../hooks/useDriverPosition'
-import { AddMarkerDialog, PoiActionsDialog, PoiMap } from '../components'
+import { AddMarkerDialog, PoiActionsDialog, PoiMap, Toast } from '../components'
 import { isMobileDevice, navigateToPoi } from '../utils/poiNavigation'
+import { playBeep, playHaptic } from '../utils/audio'
 
 const DEFAULT_ZOOM = 14
 
@@ -22,8 +23,40 @@ function draftFromPoi(poi, isNew) {
 
 export default function PoisPage({ role, pairKey }) {
   const { location, startWatching, stopWatching } = useGeolocation()
-  const { pois, addPoi, editPoi, deletePoi, clearAll, getNearestId } = useFirebasePois(pairKey)
-  const driverLocation = useDriverPosition(pairKey, role, location)
+
+  const [toasts, setToasts] = useState([])
+  const addToast = useCallback((message) => {
+    const id = Date.now()
+    setToasts((prev) => [...prev, { id, message }])
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000)
+  }, [])
+  const dismissToast = useCallback((id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id))
+  }, [])
+
+  const handleNewPoi = useCallback(
+    (poi) => {
+      if (role !== 'driver') return
+      playBeep()
+      playHaptic()
+      addToast(poi.description ? `Új pont: ${poi.description}` : 'Új pont érkezett!')
+    },
+    [role, addToast],
+  )
+
+  const { pois, addPoi, editPoi, deletePoi, clearAll, getNearestId } = useFirebasePois(pairKey, {
+    onNewPoi: handleNewPoi,
+  })
+
+  const [gpsInterval, setGpsInterval] = useState(
+    () => Number(localStorage.getItem('gpsInterval') || 2000),
+  )
+  const handleChangeGpsInterval = useCallback((ms) => {
+    setGpsInterval(ms)
+    localStorage.setItem('gpsInterval', ms)
+  }, [])
+
+  const driverLocation = useDriverPosition(pairKey, role, location, gpsInterval)
 
   const [editing, setEditing] = useState(null)
   const [placingApproach, setPlacingApproach] = useState(false)
@@ -38,11 +71,12 @@ export default function PoisPage({ role, pairKey }) {
 
   const isMobile = useMemo(() => isMobileDevice(), [])
 
-  // Nearest marker highlight only makes sense when GPS is active (driver mode)
   const nearestId = useMemo(
     () => getNearestId(role === 'driver' ? location : null),
     [getNearestId, role, location],
   )
+
+  const doneCount = useMemo(() => pois.filter((p) => p.done).length, [pois])
 
   const editingLabel = useMemo(() => {
     if (!editing) return ''
@@ -129,7 +163,13 @@ export default function PoisPage({ role, pairKey }) {
         onAddNewMarker={() => setAddOpen(true)}
         placingApproach={placingApproach}
         onCancelPlacement={() => setPlacingApproach(false)}
+        doneCount={doneCount}
+        totalCount={pois.length}
+        gpsInterval={gpsInterval}
+        onChangeGpsInterval={handleChangeGpsInterval}
       />
+
+      <Toast toasts={toasts} onDismiss={dismissToast} />
 
       <AddMarkerDialog
         key={addOpen ? 'add-open' : 'add-closed'}

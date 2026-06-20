@@ -1,28 +1,34 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ref as dbRef, onValue, set, update, remove } from 'firebase/database'
 import { v4 as uuidv4 } from 'uuid'
 import { db } from '../firebase'
 import { haversineKm } from '../utils/geo'
 import { DEFAULT_POI_TYPE } from '../utils/poiTypes'
 
-export function useFirebasePois(pairKey) {
+export function useFirebasePois(pairKey, { onNewPoi } = {}) {
   const [pois, setPois] = useState([])
+  const prevIdsRef = useRef(null)
+  const onNewPoiRef = useRef(onNewPoi)
+  useEffect(() => { onNewPoiRef.current = onNewPoi })
 
   useEffect(() => {
     if (!pairKey) return
+    prevIdsRef.current = null
     const poisRef = dbRef(db, `taviranyito/${pairKey}/pois`)
     const unsubscribe = onValue(poisRef, (snapshot) => {
       const data = snapshot.val()
-      if (data) {
-        const list = Object.values(data).map((poi) => ({
-          ...poi,
-          approach: poi.approach ?? null,
-        }))
-        list.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))
-        setPois(list)
-      } else {
-        setPois([])
+      const list = data
+        ? Object.values(data)
+            .map((poi) => ({ ...poi, approach: poi.approach ?? null }))
+            .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))
+        : []
+
+      if (prevIdsRef.current !== null) {
+        const prevIds = prevIdsRef.current
+        list.filter((p) => !prevIds.has(p.id)).forEach((p) => onNewPoiRef.current?.(p))
       }
+      prevIdsRef.current = new Set(list.map((p) => p.id))
+      setPois(list)
     })
     return unsubscribe
   }, [pairKey])

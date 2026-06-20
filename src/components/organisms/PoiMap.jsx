@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
+import { useRelativeTime } from '../../hooks/useRelativeTime'
 
 const DEFAULT_CENTER = [47.4979, 19.0402]
 const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
@@ -157,6 +158,18 @@ function addApproachLayers(layer, map, poi, onMoveApproach) {
   attachLongPressDrag(map, approachMarker, (lat, lon) => onMoveApproach(poi.id, lat, lon))
 }
 
+const GPS_INTERVALS = [
+  { ms: 1000, label: 'Gyors' },
+  { ms: 2000, label: 'Normál' },
+  { ms: 5000, label: 'Lassú' },
+]
+
+function accuracyColor(accuracy) {
+  if (accuracy < 15) return 'text-green-400'
+  if (accuracy < 50) return 'text-yellow-400'
+  return 'text-red-400'
+}
+
 export default function PoiMap({
   className,
   pois = [],
@@ -173,7 +186,13 @@ export default function PoiMap({
   onAddNewMarker,
   placingApproach = false,
   onCancelPlacement,
+  doneCount = 0,
+  totalCount = 0,
+  gpsInterval = 2000,
+  onChangeGpsInterval,
 }) {
+  const { text: lastSeenText, isStale } = useRelativeTime(driverLocation?.timestamp)
+
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const markersLayerRef = useRef(null)
@@ -422,6 +441,7 @@ export default function PoiMap({
     <div className={`relative ${className ?? ''}`}>
       <div ref={containerRef} className="h-full w-full" />
 
+      {/* Controller: action buttons top-right */}
       {role !== 'driver' && !placingApproach ? (
         <div className="absolute right-3 top-3 z-[1000] flex flex-col gap-2">
           {pois.length > 0 ? (
@@ -443,6 +463,61 @@ export default function PoiMap({
         </div>
       ) : null}
 
+      {/* Controller: last seen + driver accuracy — top-left */}
+      {role !== 'driver' && lastSeenText ? (
+        <div className="pointer-events-none absolute left-3 top-3 z-[1000] flex flex-col gap-1">
+          <div
+            className={`rounded-full bg-slate-900/90 px-3 py-1 text-xs font-semibold shadow ${isStale ? 'text-red-400' : 'text-orange-300'}`}
+          >
+            🚗 {lastSeenText}
+          </div>
+          {typeof driverLocation?.accuracy === 'number' ? (
+            <div
+              className={`rounded-full bg-slate-900/90 px-3 py-1 text-xs font-semibold shadow ${accuracyColor(driverLocation.accuracy)}`}
+            >
+              ±{Math.round(driverLocation.accuracy)} m
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Driver: GPS interval selector — top-left */}
+      {role === 'driver' ? (
+        <div className="absolute left-3 top-3 z-[1000] flex overflow-hidden rounded-lg border border-slate-700 bg-slate-900/90 shadow">
+          {GPS_INTERVALS.map(({ ms, label }) => (
+            <button
+              key={ms}
+              type="button"
+              onClick={() => onChangeGpsInterval?.(ms)}
+              className={`px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                gpsInterval === ms
+                  ? 'bg-cyan-600 text-white'
+                  : 'text-slate-400 hover:text-slate-100'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {/* Driver: GPS accuracy — bottom-right */}
+      {role === 'driver' && typeof currentLocation?.accuracy === 'number' ? (
+        <div
+          className={`pointer-events-none absolute bottom-3 right-3 z-[1000] rounded-full bg-slate-900/90 px-3 py-1 text-xs font-semibold shadow ${accuracyColor(currentLocation.accuracy)}`}
+        >
+          GPS: ±{Math.round(currentLocation.accuracy)} m
+        </div>
+      ) : null}
+
+      {/* Both roles: done/total count — bottom-left */}
+      {totalCount > 0 ? (
+        <div className="pointer-events-none absolute bottom-3 left-3 z-[1000] rounded-full bg-slate-900/90 px-3 py-1 text-xs font-semibold text-slate-300 shadow">
+          {doneCount} / {totalCount} kész
+        </div>
+      ) : null}
+
+      {/* Controller: placing approach hint — top-center */}
       {role !== 'driver' && placingApproach ? (
         <div className="absolute left-1/2 top-3 z-[1000] flex -translate-x-1/2 items-center gap-3 rounded-full bg-cyan-600/90 px-4 py-1.5 text-xs font-bold text-white shadow">
           <span>Long-press the map to place the ráfordító</span>
@@ -456,6 +531,7 @@ export default function PoiMap({
         </div>
       ) : null}
 
+      {/* Controller: long-press hint — bottom-center */}
       {role !== 'driver' && !placingApproach ? (
         <div className="pointer-events-none absolute bottom-3 left-1/2 z-[1000] -translate-x-1/2 rounded-full bg-slate-900/80 px-3 py-1 text-xs text-slate-300">
           Long-press the map to drop a marker · long-press a marker to move it

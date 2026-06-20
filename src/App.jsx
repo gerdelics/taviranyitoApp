@@ -1,10 +1,25 @@
+import { useEffect } from 'react'
 import { useAuth } from './hooks/useAuth'
+import { useConnectionStatus } from './hooks/useConnectionStatus'
 import PoisPage from './pages/PoisPage'
 import LoginPage from './pages/LoginPage'
 import { APP_VERSION } from './version'
+import { unlockAudio } from './utils/audio'
 
 export default function App() {
   const { session, login, logout } = useAuth()
+  const { online, firebaseConnected } = useConnectionStatus()
+
+  // Unlock AudioContext on first touch (required by iOS Safari)
+  useEffect(() => {
+    document.addEventListener('touchstart', unlockAudio, { once: true })
+  }, [])
+
+  const offlineMessage = !online
+    ? 'Nincs internetkapcsolat'
+    : !firebaseConnected
+      ? 'Firebase kapcsolat megszakadt'
+      : null
 
   return (
     <div className="flex h-dvh flex-col bg-slate-950 text-slate-100">
@@ -16,7 +31,12 @@ export default function App() {
               <p className="text-xs text-slate-600">{APP_VERSION}</p>
             </div>
             <div className="flex items-center gap-3 text-sm">
-              <span className="text-slate-400">
+              <span className="flex items-center gap-1.5 text-slate-400">
+                <span
+                  className={`inline-block h-2 w-2 rounded-full ${
+                    offlineMessage ? 'bg-red-500' : 'bg-green-500'
+                  }`}
+                />
                 {session.username} · {session.role === 'driver' ? '🚗 Sofőr' : '🗺️ Irányító'}
               </span>
               <button
@@ -29,6 +49,16 @@ export default function App() {
             </div>
           </div>
         </header>
+      )}
+
+      {offlineMessage && (
+        <div
+          role="alert"
+          className="flex items-center justify-center gap-2 bg-red-900/80 px-4 py-2 text-sm font-semibold text-red-200"
+        >
+          <span>⚠️</span>
+          <span>{offlineMessage}</span>
+        </div>
       )}
 
       <main className="mx-auto w-full max-w-6xl min-h-0 flex-1 px-4 py-3">
