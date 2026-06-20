@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useGeolocation } from '../hooks/useGeolocation'
 import { useFirebasePois } from '../hooks/useFirebasePois'
 import { useDriverPosition } from '../hooks/useDriverPosition'
+import { useWakeLock } from '../hooks/useWakeLock'
 import { AddMarkerDialog, PoiActionsDialog, PoiMap, Toast } from '../components'
 import { isMobileDevice, navigateToPoi } from '../utils/poiNavigation'
 import { playBeep, playHaptic } from '../utils/audio'
@@ -61,6 +62,9 @@ export default function PoisPage({ role, pairKey }) {
   const [editing, setEditing] = useState(null)
   const [placingApproach, setPlacingApproach] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
+
+  // Keep screen awake while driving so GPS keeps broadcasting
+  useWakeLock(role === 'driver')
 
   // GPS only runs for the driver role
   useEffect(() => {
