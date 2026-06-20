@@ -8,13 +8,13 @@ export default function App() {
 
   return (
     <div className="flex h-dvh flex-col bg-slate-950 text-slate-100">
-      <header className="border-b border-slate-800 bg-slate-900/90">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
-          <div>
-            <h1 className="text-lg font-semibold leading-tight">Távirányító · POIs</h1>
-            <p className="text-xs text-slate-600">{APP_VERSION}</p>
-          </div>
-          {session && (
+      {session && (
+        <header className="border-b border-slate-800 bg-slate-900/90">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
+            <div>
+              <h1 className="text-lg font-semibold leading-tight">Távirányító · POIs</h1>
+              <p className="text-xs text-slate-600">{APP_VERSION}</p>
+            </div>
             <div className="flex items-center gap-3 text-sm">
               <span className="text-slate-400">
                 {session.username} · {session.role === 'driver' ? '🚗 Sofőr' : '🗺️ Irányító'}
@@ -27,9 +27,9 @@ export default function App() {
                 Kilépés
               </button>
             </div>
-          )}
-        </div>
-      </header>
+          </div>
+        </header>
+      )}
 
       <main className="mx-auto w-full max-w-6xl min-h-0 flex-1 px-4 py-3">
         {session ? (
