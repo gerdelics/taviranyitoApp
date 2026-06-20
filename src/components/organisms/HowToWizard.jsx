@@ -43,16 +43,16 @@ const STEPS = [
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between rounded-lg bg-slate-700/50 px-3 py-2">
               <span className="text-sm font-semibold text-slate-200">🚗 Sofőr</span>
-              <span className="font-mono text-sm text-cyan-300">gera / qwe123</span>
+              <span className="font-mono text-sm text-cyan-300">sofor / qwe123</span>
             </div>
             <div className="flex items-center justify-between rounded-lg bg-slate-700/50 px-3 py-2">
               <span className="text-sm font-semibold text-slate-200">🗺️ Irányító</span>
-              <span className="font-mono text-sm text-orange-300">gabi / qwe123</span>
+              <span className="font-mono text-sm text-orange-300">iranyito / qwe123</span>
             </div>
           </div>
         </div>
         <p className="text-xs text-slate-500">
-          💡 Tipp: két eszközön lépj be egyszerre – az egyiken gera sofőrként, a másikon gabi
+          💡 Tipp: két eszközön lépj be egyszerre – az egyiken sofor sofőrként, a másikon iranyito
           irányítóként – és láthatod a valós idejű együttműködést!
         </p>
       </div>

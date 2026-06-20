@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { APP_VERSION } from '../version'
 import HowToWizard from '../components/organisms/HowToWizard'
 
-const VALID_USERS = ['gera', 'gabi']
+const VALID_USERS = ['sofor', 'iranyito']
 const PASSWORD = 'qwe123'
-const PARTNER = { gera: 'gabi', gabi: 'gera' }
+const PARTNER = { sofor: 'iranyito', iranyito: 'sofor' }
 
 export default function LoginPage({ onLogin }) {
   const [step, setStep] = useState(1)
@@ -51,7 +51,7 @@ export default function LoginPage({ onLogin }) {
                   value={username}
                   onChange={(e) => setUsername(e.target.value.toLowerCase().trim())}
                   className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100 focus:border-cyan-500 focus:outline-none"
-                  placeholder="gera / gabi"
+                  placeholder="sofor / iranyito"
                   autoComplete="username"
                   autoCapitalize="none"
                 />

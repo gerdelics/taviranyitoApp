@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 
-const USERS = { gera: 'qwe123', gabi: 'qwe123' }
-const PARTNER = { gera: 'gabi', gabi: 'gera' }
+const USERS = { sofor: 'qwe123', iranyito: 'qwe123' }
+const PARTNER = { sofor: 'iranyito', iranyito: 'sofor' }
 const SESSION_KEY = 'taviranyito_session'
 
 export function useAuth() {
