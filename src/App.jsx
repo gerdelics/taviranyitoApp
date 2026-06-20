@@ -1,6 +1,7 @@
 import { useAuth } from './hooks/useAuth'
 import PoisPage from './pages/PoisPage'
 import LoginPage from './pages/LoginPage'
+import { APP_VERSION } from './version'
 
 export default function App() {
   const { session, login, logout } = useAuth()
@@ -9,7 +10,10 @@ export default function App() {
     <div className="flex h-dvh flex-col bg-slate-950 text-slate-100">
       <header className="border-b border-slate-800 bg-slate-900/90">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
-          <h1 className="text-lg font-semibold">Távirányító · POIs</h1>
+          <div>
+            <h1 className="text-lg font-semibold leading-tight">Távirányító · POIs</h1>
+            <p className="text-xs text-slate-600">{APP_VERSION}</p>
+          </div>
           {session && (
             <div className="flex items-center gap-3 text-sm">
               <span className="text-slate-400">

@@ -1,4 +1,5 @@
 export { default as AddMarkerDialog } from './AddMarkerDialog'
+export { default as HowToWizard } from './HowToWizard'
 export { default as BaseModal } from './BaseModal'
 export { default as OverlayModal } from './OverlayModal'
 export { default as PoiActionsDialog } from './PoiActionsDialog'
