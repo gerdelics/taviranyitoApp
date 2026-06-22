@@ -71,26 +71,19 @@ export default function PoiActionsDialog({
             {copyState === 'error' ? <p className="text-xs text-red-400">Copy failed</p> : null}
           </div>
 
-          {/* Right 1/3: X + Drive + Done */}
+          {/* Right 1/3: Drive + Done */}
           <div className="flex flex-[1] flex-col gap-2">
             <button
               type="button"
-              onClick={onCancel}
-              className="self-end rounded-lg border border-slate-700 px-2.5 py-1 text-sm text-slate-400 hover:text-slate-100"
-            >
-              ✕
-            </button>
-            <button
-              type="button"
               onClick={handleNavigate}
-              className="flex-1 rounded-xl bg-cyan-600 text-sm font-bold text-white active:bg-cyan-700"
+              className="min-h-[3.5rem] flex-1 rounded-xl bg-cyan-600 text-sm font-bold text-white active:bg-cyan-700"
             >
               Drive
             </button>
             <button
               type="button"
               onClick={onMarkDone}
-              className={`flex-1 rounded-xl text-sm font-bold text-white ${
+              className={`min-h-[3.5rem] flex-1 rounded-xl text-sm font-bold text-white ${
                 isDone ? 'bg-slate-700 active:bg-slate-600' : 'bg-emerald-600 active:bg-emerald-500'
               }`}
             >
