@@ -26,7 +26,7 @@ export default function AddMarkerDialog({
     if (!parsed) {
       return
     }
-    onAdd(parsed.lat, parsed.lon, { description, type })
+    onAdd(parsed.lat, parsed.lon, { description, type, published: true })
     onClose()
   }
 

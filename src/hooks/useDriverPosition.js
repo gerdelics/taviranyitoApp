@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ref as dbRef, onValue, set } from 'firebase/database'
 import { db } from '../firebase'
 
-export function useDriverPosition(pairKey, role, location, writeIntervalMs = 2000) {
+export function useDriverPosition(pairKey, role, location, writeIntervalMs = 3000) {
   const [driverPosition, setDriverPosition] = useState(null)
   const lastWriteRef = useRef(0)
 

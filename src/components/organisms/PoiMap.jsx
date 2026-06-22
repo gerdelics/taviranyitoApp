@@ -159,9 +159,9 @@ function addApproachLayers(layer, map, poi, onMoveApproach) {
 }
 
 const GPS_INTERVALS = [
-  { ms: 1000, label: 'Gyors' },
-  { ms: 2000, label: 'Normál' },
-  { ms: 5000, label: 'Lassú' },
+  { ms: 1000, label: '1s' },
+  { ms: 3000, label: '3s' },
+  { ms: 5000, label: '5s' },
 ]
 
 function accuracyColor(accuracy) {
@@ -481,9 +481,9 @@ export default function PoiMap({
         </div>
       ) : null}
 
-      {/* Driver: GPS interval selector — top-left */}
+      {/* Driver: GPS interval selector — top-right */}
       {role === 'driver' ? (
-        <div className="absolute left-3 top-3 z-[1000] flex overflow-hidden rounded-lg border border-slate-700 bg-slate-900/90 shadow">
+        <div className="absolute right-3 top-3 z-[1000] flex overflow-hidden rounded-lg border border-slate-700 bg-slate-900/90 shadow">
           {GPS_INTERVALS.map(({ ms, label }) => (
             <button
               key={ms}

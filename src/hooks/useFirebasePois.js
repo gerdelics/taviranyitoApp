@@ -7,13 +7,13 @@ import { DEFAULT_POI_TYPE } from '../utils/poiTypes'
 
 export function useFirebasePois(pairKey, { onNewPoi } = {}) {
   const [pois, setPois] = useState([])
-  const prevIdsRef = useRef(null)
+  const prevPublishedIdsRef = useRef(null)
   const onNewPoiRef = useRef(onNewPoi)
   useEffect(() => { onNewPoiRef.current = onNewPoi })
 
   useEffect(() => {
     if (!pairKey) return
-    prevIdsRef.current = null
+    prevPublishedIdsRef.current = null
     const poisRef = dbRef(db, `taviranyito/${pairKey}/pois`)
     const unsubscribe = onValue(poisRef, (snapshot) => {
       const data = snapshot.val()
@@ -23,11 +23,15 @@ export function useFirebasePois(pairKey, { onNewPoi } = {}) {
             .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))
         : []
 
-      if (prevIdsRef.current !== null) {
-        const prevIds = prevIdsRef.current
-        list.filter((p) => !prevIds.has(p.id)).forEach((p) => onNewPoiRef.current?.(p))
+      if (prevPublishedIdsRef.current !== null) {
+        const prevPublished = prevPublishedIdsRef.current
+        list
+          .filter((p) => p.published === true && !prevPublished.has(p.id))
+          .forEach((p) => onNewPoiRef.current?.(p))
       }
-      prevIdsRef.current = new Set(list.map((p) => p.id))
+      prevPublishedIdsRef.current = new Set(
+        list.filter((p) => p.published === true).map((p) => p.id),
+      )
       setPois(list)
     })
     return unsubscribe
@@ -44,6 +48,7 @@ export function useFirebasePois(pairKey, { onNewPoi } = {}) {
         description: details.description?.trim() || '',
         type: details.type || DEFAULT_POI_TYPE,
         createdAt: Date.now(),
+        published: details.published ?? false,
       }
       if (details.approach != null) poiData.approach = details.approach
       set(dbRef(db, `taviranyito/${pairKey}/pois/${poiData.id}`), poiData)

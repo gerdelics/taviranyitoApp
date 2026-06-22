@@ -50,7 +50,7 @@ export default function PoisPage({ role, pairKey }) {
   })
 
   const [gpsInterval, setGpsInterval] = useState(
-    () => Number(localStorage.getItem('gpsInterval') || 2000),
+    () => Number(localStorage.getItem('gpsInterval') || 3000),
   )
   const handleChangeGpsInterval = useCallback((ms) => {
     setGpsInterval(ms)
@@ -130,6 +130,7 @@ export default function PoisPage({ role, pairKey }) {
       description: editing.description,
       approach: editing.approach,
       done: editing.done,
+      ...(editing.isNew ? { published: true } : {}),
     })
     setEditing(null)
     setPlacingApproach(false)
