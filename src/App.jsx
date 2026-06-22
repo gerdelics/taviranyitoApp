@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from './hooks/useAuth'
 import { useConnectionStatus } from './hooks/useConnectionStatus'
 import PoisPage from './pages/PoisPage'
@@ -22,6 +22,7 @@ export default function App() {
       : null
 
   const isDriver = session?.role === 'driver'
+  const [menuOpen, setMenuOpen] = useState(false)
 
   return (
     <div className="flex h-dvh flex-col bg-slate-950 text-slate-100">
@@ -63,11 +64,45 @@ export default function App() {
         </div>
       )}
 
-      <main className={`w-full min-h-0 flex-1 ${isDriver ? '' : 'mx-auto max-w-6xl px-4 py-3'}`}>
+      <main className={`relative w-full min-h-0 flex-1 ${isDriver ? '' : 'mx-auto max-w-6xl px-4 py-3'}`}>
         {session ? (
           <PoisPage role={session.role} pairKey={session.pairKey} />
         ) : (
           <LoginPage onLogin={login} />
+        )}
+
+        {isDriver && session && (
+          <>
+            {menuOpen && (
+              <div
+                className="absolute inset-0 z-[1999]"
+                onClick={() => setMenuOpen(false)}
+              />
+            )}
+            <div className="absolute left-3 top-3 z-[2000]">
+              <button
+                type="button"
+                onClick={() => setMenuOpen((v) => !v)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 bg-slate-900/90 text-lg text-slate-300 shadow hover:text-slate-100"
+                aria-label="Menü"
+              >
+                ☰
+              </button>
+              {menuOpen && (
+                <div className="absolute left-0 top-full mt-1 min-w-[160px] rounded-lg border border-slate-700 bg-slate-900 p-3 shadow-xl">
+                  <p className="text-sm font-semibold text-slate-200">{session.username}</p>
+                  <p className="mb-3 text-xs text-slate-500">🚗 Sofőr</p>
+                  <button
+                    type="button"
+                    onClick={() => { logout(); setMenuOpen(false) }}
+                    className="w-full rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:border-red-500 hover:text-red-300"
+                  >
+                    Kilépés
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </main>
     </div>
