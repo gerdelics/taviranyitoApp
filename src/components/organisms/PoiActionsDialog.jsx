@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import BaseModal from './BaseModal'
 import OverlayModal from './OverlayModal'
 import { POI_TYPES } from '../../utils/poiTypes'
 
@@ -40,59 +41,64 @@ export default function PoiActionsDialog({
   if (role === 'driver') {
     const isDone = draft.done
     return (
-      <OverlayModal open={open} onClose={onCancel} title={draft.description || typeLabel} showHeaderClose={false}>
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-400">
-            <span>#{number}</span>
-            {draft.description ? <span className="text-slate-500">·</span> : null}
-            {draft.description ? <span>{typeLabel}</span> : null}
-            <span className="text-slate-500">·</span>
-            <span className={isDone ? 'text-emerald-400' : 'text-yellow-400'}>
-              {isDone ? 'Kész' : 'Folyamatban'}
-            </span>
+      <BaseModal
+        open={open}
+        onClose={onCancel}
+        closeOnBackdrop
+        wrapperClassName="flex min-h-full items-end justify-center sm:items-center"
+        contentClassName="w-full max-w-md rounded-t-2xl border border-slate-700 bg-slate-900 p-4 sm:rounded-2xl"
+      >
+        <div className="flex gap-3">
+          {/* Left 2/3: info */}
+          <div className="flex min-w-0 flex-[2] flex-col justify-center gap-1">
+            <p className="truncate text-base font-bold text-slate-100">
+              {draft.description || typeLabel}
+            </p>
+            <p className="text-xs text-slate-400">
+              #{number}
+              {draft.description ? ` · ${typeLabel}` : ''}
+              {' · '}
+              <span className={isDone ? 'text-emerald-400' : 'text-yellow-400'}>
+                {isDone ? 'Kész' : 'Folyamatban'}
+              </span>
+            </p>
             {draft.approach ? (
-              <>
-                <span className="text-slate-500">·</span>
-                <span>
-                  Ráfordító: {draft.approach.lat.toFixed(4)}, {draft.approach.lon.toFixed(4)}
-                </span>
-              </>
+              <p className="text-xs text-slate-500">
+                Ráfordító: {draft.approach.lat.toFixed(4)}, {draft.approach.lon.toFixed(4)}
+              </p>
             ) : null}
+            {copyState === 'copied' ? <p className="text-xs text-emerald-400">Copied!</p> : null}
+            {copyState === 'error' ? <p className="text-xs text-red-400">Copy failed</p> : null}
           </div>
 
-          <button
-            type="button"
-            onClick={handleNavigate}
-            className="w-full rounded-xl bg-cyan-600 px-4 py-5 text-lg font-bold text-white active:bg-cyan-700"
-          >
-            Drive with Google
-          </button>
-          {copyState === 'copied' ? (
-            <p className="text-center text-xs text-emerald-400">Copied!</p>
-          ) : null}
-          {copyState === 'error' ? (
-            <p className="text-center text-xs text-red-400">Copy failed</p>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={onMarkDone}
-            className={`w-full rounded-xl px-4 py-5 text-lg font-bold text-white ${
-              isDone ? 'bg-slate-700 active:bg-slate-600' : 'bg-emerald-600 active:bg-emerald-500'
-            }`}
-          >
-            {isDone ? 'Mégsem kész' : 'Kész'}
-          </button>
-
-          <button
-            type="button"
-            onClick={onCancel}
-            className="w-full rounded-lg border border-slate-700 px-4 py-2.5 text-sm text-slate-400 hover:text-slate-200"
-          >
-            Bezár
-          </button>
+          {/* Right 1/3: X + Drive + Done */}
+          <div className="flex flex-[1] flex-col gap-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="self-end rounded-lg border border-slate-700 px-2.5 py-1 text-sm text-slate-400 hover:text-slate-100"
+            >
+              ✕
+            </button>
+            <button
+              type="button"
+              onClick={handleNavigate}
+              className="flex-1 rounded-xl bg-cyan-600 text-sm font-bold text-white active:bg-cyan-700"
+            >
+              Drive
+            </button>
+            <button
+              type="button"
+              onClick={onMarkDone}
+              className={`flex-1 rounded-xl text-sm font-bold text-white ${
+                isDone ? 'bg-slate-700 active:bg-slate-600' : 'bg-emerald-600 active:bg-emerald-500'
+              }`}
+            >
+              {isDone ? 'Mégsem' : 'Kész'}
+            </button>
+          </div>
         </div>
-      </OverlayModal>
+      </BaseModal>
     )
   }
 
