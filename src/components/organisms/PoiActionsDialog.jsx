@@ -2,6 +2,7 @@ import { useState } from 'react'
 import BaseModal from './BaseModal'
 import OverlayModal from './OverlayModal'
 import { POI_TYPES } from '../../utils/poiTypes'
+import { haversineKm } from '../../utils/geo'
 
 export default function PoiActionsDialog({
   open,
@@ -16,6 +17,7 @@ export default function PoiActionsDialog({
   onCancel,
   onDelete,
   onMarkDone,
+  currentLocation,
 }) {
   const [copyState, setCopyState] = useState(null)
 
@@ -40,6 +42,10 @@ export default function PoiActionsDialog({
 
   if (role === 'driver') {
     const isDone = draft.done
+    const distKm = currentLocation ? haversineKm(currentLocation, draft) : null
+    const distText = distKm !== null
+      ? distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(1)} km`
+      : null
     return (
       <BaseModal
         open={open}
@@ -61,6 +67,9 @@ export default function PoiActionsDialog({
               <span className={isDone ? 'text-emerald-400' : 'text-yellow-400'}>
                 {isDone ? 'Kész' : 'Folyamatban'}
               </span>
+              {distText ? (
+                <span className="text-slate-500"> · {distText}</span>
+              ) : null}
             </p>
             {draft.approach ? (
               <p className="text-xs text-slate-500">

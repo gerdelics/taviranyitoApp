@@ -204,6 +204,7 @@ export default function PoisPage({ role, pairKey, username, onLogout }) {
         onCancel={handleCancel}
         onDelete={handleDelete}
         onMarkDone={handleMarkDone}
+        currentLocation={role === 'driver' ? location : null}
       />
     </div>
   )

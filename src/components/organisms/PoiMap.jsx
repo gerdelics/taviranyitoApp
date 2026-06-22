@@ -537,6 +537,29 @@ export default function PoiMap({
         </>
       ) : null}
 
+      {/* Driver: open nearest POI — bottom-center */}
+      {role === 'driver' && nearestId ? (
+        <div className="absolute bottom-3 left-1/2 z-[1000] -translate-x-1/2">
+          <button
+            type="button"
+            onClick={() => {
+              const nearest = pois.find((p) => p.id === nearestId)
+              if (nearest && mapRef.current) {
+                mapRef.current.setView(
+                  [nearest.lat, nearest.lon],
+                  mapRef.current.getZoom(),
+                  { animate: true },
+                )
+              }
+              onMarkerClickRef.current?.(nearestId)
+            }}
+            className="rounded-full bg-cyan-600 px-5 py-2 text-sm font-bold text-white shadow-lg active:bg-cyan-700"
+          >
+            Next POI
+          </button>
+        </div>
+      ) : null}
+
       {/* Driver: GPS accuracy — bottom-right */}
       {role === 'driver' && typeof currentLocation?.accuracy === 'number' ? (
         <div
