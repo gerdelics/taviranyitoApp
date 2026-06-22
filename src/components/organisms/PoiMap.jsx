@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import { useRelativeTime } from '../../hooks/useRelativeTime'
 
@@ -190,8 +190,11 @@ export default function PoiMap({
   totalCount = 0,
   gpsInterval = 2000,
   onChangeGpsInterval,
+  username,
+  onLogout,
 }) {
   const { text: lastSeenText, isStale } = useRelativeTime(driverLocation?.timestamp)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const containerRef = useRef(null)
   const mapRef = useRef(null)
@@ -481,24 +484,57 @@ export default function PoiMap({
         </div>
       ) : null}
 
-      {/* Driver: GPS interval selector — top-right */}
+      {/* Driver: GPS interval selector + hamburger menu — top-right */}
       {role === 'driver' ? (
-        <div className="absolute right-3 top-3 z-[1000] flex overflow-hidden rounded-lg border border-slate-700 bg-slate-900/90 shadow">
-          {GPS_INTERVALS.map(({ ms, label }) => (
-            <button
-              key={ms}
-              type="button"
-              onClick={() => onChangeGpsInterval?.(ms)}
-              className={`px-2.5 py-1.5 text-xs font-semibold transition-colors ${
-                gpsInterval === ms
-                  ? 'bg-cyan-600 text-white'
-                  : 'text-slate-400 hover:text-slate-100'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <>
+          {menuOpen && (
+            <div
+              className="absolute inset-0 z-[999]"
+              onClick={() => setMenuOpen(false)}
+            />
+          )}
+          <div className="absolute right-3 top-3 z-[1000] flex items-stretch gap-1.5">
+            <div className="flex overflow-hidden rounded-lg border border-slate-700 bg-slate-900/90 shadow">
+              {GPS_INTERVALS.map(({ ms, label }) => (
+                <button
+                  key={ms}
+                  type="button"
+                  onClick={() => onChangeGpsInterval?.(ms)}
+                  className={`px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                    gpsInterval === ms
+                      ? 'bg-cyan-600 text-white'
+                      : 'text-slate-400 hover:text-slate-100'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setMenuOpen((v) => !v)}
+                aria-label="Menü"
+                className="flex h-full min-w-[2.25rem] items-center justify-center rounded-lg border border-slate-700 bg-slate-900/90 px-2 text-sm text-slate-300 shadow hover:text-slate-100"
+              >
+                ☰
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 top-full mt-1 min-w-[160px] rounded-lg border border-slate-700 bg-slate-900 p-3 shadow-xl">
+                  <p className="text-sm font-semibold text-slate-200">{username}</p>
+                  <p className="mb-3 text-xs text-slate-500">🚗 Sofőr</p>
+                  <button
+                    type="button"
+                    onClick={onLogout}
+                    className="w-full rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:border-red-500 hover:text-red-300"
+                  >
+                    Kilépés
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
       ) : null}
 
       {/* Driver: GPS accuracy — bottom-right */}

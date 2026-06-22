@@ -22,7 +22,7 @@ function draftFromPoi(poi, isNew) {
   }
 }
 
-export default function PoisPage({ role, pairKey }) {
+export default function PoisPage({ role, pairKey, username, onLogout }) {
   const { location, startWatching, stopWatching } = useGeolocation()
 
   const [toasts, setToasts] = useState([])
@@ -154,6 +154,8 @@ export default function PoisPage({ role, pairKey }) {
     <div className="h-full">
       <PoiMap
         className={`h-full w-full overflow-hidden bg-slate-900 ${role === 'driver' ? '' : 'rounded-xl border border-slate-700'}`}
+        username={username}
+        onLogout={onLogout}
         pois={pois}
         nearestId={nearestId}
         currentLocation={role === 'driver' ? location : null}
