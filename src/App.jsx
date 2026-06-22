@@ -53,6 +53,12 @@ export default function App() {
         </header>
       )}
 
+      {session && isDriver && (
+        <header className="border-b border-slate-800 bg-slate-900/90 px-3 py-1">
+          <p className="text-xs text-slate-600">Távirányító · {APP_VERSION}</p>
+        </header>
+      )}
+
       {offlineMessage && (
         <div
           role="alert"
