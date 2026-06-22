@@ -21,9 +21,11 @@ export default function App() {
       ? 'Firebase kapcsolat megszakadt'
       : null
 
+  const isDriver = session?.role === 'driver'
+
   return (
     <div className="flex h-dvh flex-col bg-slate-950 text-slate-100">
-      {session && (
+      {session && !isDriver && (
         <header className="border-b border-slate-800 bg-slate-900/90">
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
             <div>
@@ -37,7 +39,7 @@ export default function App() {
                     offlineMessage ? 'bg-red-500' : 'bg-green-500'
                   }`}
                 />
-                {session.username} · {session.role === 'driver' ? '🚗 Sofőr' : '🗺️ Irányító'}
+                {session.username} · 🗺️ Irányító
               </span>
               <button
                 type="button"
@@ -61,7 +63,7 @@ export default function App() {
         </div>
       )}
 
-      <main className="mx-auto w-full max-w-6xl min-h-0 flex-1 px-4 py-3">
+      <main className={`w-full min-h-0 flex-1 ${isDriver ? '' : 'mx-auto max-w-6xl px-4 py-3'}`}>
         {session ? (
           <PoisPage role={session.role} pairKey={session.pairKey} />
         ) : (

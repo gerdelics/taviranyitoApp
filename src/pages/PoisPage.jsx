@@ -153,7 +153,7 @@ export default function PoisPage({ role, pairKey }) {
   return (
     <div className="h-full">
       <PoiMap
-        className="h-full w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-900"
+        className={`h-full w-full overflow-hidden bg-slate-900 ${role === 'driver' ? '' : 'rounded-xl border border-slate-700'}`}
         pois={pois}
         nearestId={nearestId}
         currentLocation={role === 'driver' ? location : null}

@@ -38,71 +38,56 @@ export default function PoiActionsDialog({
   const typeLabel = POI_TYPES.find((t) => t.value === draft.type)?.label ?? draft.type
 
   if (role === 'driver') {
+    const isDone = draft.done
     return (
-      <OverlayModal open={open} onClose={onCancel} title={title} showHeaderClose={false}>
-        <div className="flex flex-col gap-4">
-          <p className="text-sm text-slate-400">
-            {draft.lat.toFixed(5)}, {draft.lon.toFixed(5)}
-          </p>
-
-          <div className="flex flex-col gap-1">
-            <span className={labelClass}>Type</span>
-            <span className="text-sm text-slate-100">{typeLabel}</span>
-          </div>
-
-          {draft.description ? (
-            <div className="flex flex-col gap-1">
-              <span className={labelClass}>Description</span>
-              <span className="text-sm text-slate-100">{draft.description}</span>
-            </div>
-          ) : null}
-
-          {draft.approach ? (
-            <div className="flex flex-col gap-1">
-              <span className={labelClass}>Ráfordító</span>
-              <span className="text-sm text-slate-200">
-                {draft.approach.lat.toFixed(5)}, {draft.approach.lon.toFixed(5)}
-              </span>
-            </div>
-          ) : null}
-
-          <div className="flex flex-col gap-1">
-            <span className={labelClass}>Státusz</span>
-            <span className={`text-sm font-bold ${draft.done ? 'text-emerald-400' : 'text-yellow-400'}`}>
-              {draft.done ? 'Kész' : 'Folyamatban'}
+      <OverlayModal open={open} onClose={onCancel} title={draft.description || typeLabel} showHeaderClose={false}>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-400">
+            <span>#{number}</span>
+            {draft.description ? <span className="text-slate-500">·</span> : null}
+            {draft.description ? <span>{typeLabel}</span> : null}
+            <span className="text-slate-500">·</span>
+            <span className={isDone ? 'text-emerald-400' : 'text-yellow-400'}>
+              {isDone ? 'Kész' : 'Folyamatban'}
             </span>
-          </div>
-
-          <div>
-            <button
-              type="button"
-              onClick={handleNavigate}
-              className="w-full rounded-lg bg-cyan-600 px-4 py-2 text-sm font-bold text-white hover:bg-cyan-500"
-            >
-              Drive with Google
-            </button>
-            {copyState === 'copied' ? (
-              <p className="mt-1 text-center text-xs text-emerald-400">Copied!</p>
-            ) : null}
-            {copyState === 'error' ? (
-              <p className="mt-1 text-center text-xs text-red-400">Copy failed</p>
+            {draft.approach ? (
+              <>
+                <span className="text-slate-500">·</span>
+                <span>
+                  Ráfordító: {draft.approach.lat.toFixed(4)}, {draft.approach.lon.toFixed(4)}
+                </span>
+              </>
             ) : null}
           </div>
 
           <button
             type="button"
+            onClick={handleNavigate}
+            className="w-full rounded-xl bg-cyan-600 px-4 py-5 text-lg font-bold text-white active:bg-cyan-700"
+          >
+            Drive with Google
+          </button>
+          {copyState === 'copied' ? (
+            <p className="text-center text-xs text-emerald-400">Copied!</p>
+          ) : null}
+          {copyState === 'error' ? (
+            <p className="text-center text-xs text-red-400">Copy failed</p>
+          ) : null}
+
+          <button
+            type="button"
             onClick={onMarkDone}
-            className={`w-full rounded-lg px-4 py-2 text-sm font-bold text-white ${
-              draft.done ? 'bg-slate-700 hover:bg-slate-600' : 'bg-emerald-600 hover:bg-emerald-500'
+            className={`w-full rounded-xl px-4 py-5 text-lg font-bold text-white ${
+              isDone ? 'bg-slate-700 active:bg-slate-600' : 'bg-emerald-600 active:bg-emerald-500'
             }`}
           >
-            {draft.done ? 'Mark as not done' : 'Mark as done'}
+            {isDone ? 'Mégsem kész' : 'Kész'}
           </button>
 
           <button
             type="button"
             onClick={onCancel}
-            className="w-full rounded-lg border border-slate-700 px-4 py-2 text-sm font-bold text-slate-200 hover:text-slate-100"
+            className="w-full rounded-lg border border-slate-700 px-4 py-2.5 text-sm text-slate-400 hover:text-slate-200"
           >
             Bezár
           </button>
