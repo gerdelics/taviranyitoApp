@@ -50,7 +50,7 @@ function buildArrowIcon(bearing) {
   return L.divIcon({ html, className: '', iconSize: [18, 18], iconAnchor: [9, 9] })
 }
 
-// Less prominent dot for the "ráfordító" (approach point).
+// Less prominent dot for the approach point.
 function buildApproachIcon() {
   const html = `<div style="width:14px;height:14px;border-radius:9999px;background:#64748b;border:1px solid ${APPROACH_COLOR};opacity:.85"></div>`
   return L.divIcon({ html, className: '', iconSize: [14, 14], iconAnchor: [7, 7] })
@@ -124,7 +124,7 @@ function attachLongPressDrag(map, marker, onCommit, clickGuard) {
   el.addEventListener('pointerdown', handleDown)
 }
 
-// Draw the "ráfordító" (approach point) for a POI: a dim draggable marker, a
+// Draw the approach point for a POI: a dim draggable marker, a
 // dashed connector, and an arrow at the midpoint pointing toward the POI.
 function addApproachLayers(layer, map, poi, onMoveApproach) {
   const approach = poi.approach
@@ -184,6 +184,7 @@ export default function PoiMap({
   onMoveApproach,
   onClearAll,
   onAddNewMarker,
+  onOpenReorder,
   placingApproach = false,
   onCancelPlacement,
   doneCount = 0,
@@ -447,6 +448,15 @@ export default function PoiMap({
       {/* Controller: action buttons top-right */}
       {role !== 'driver' && !placingApproach ? (
         <div className="absolute right-3 top-3 z-[1000] flex flex-col gap-2">
+          {pois.filter((p) => !p.done).length > 1 ? (
+            <button
+              type="button"
+              onClick={onOpenReorder}
+              className="rounded-lg border border-slate-700 bg-slate-900/90 px-3 py-2 text-sm font-bold text-slate-100 shadow hover:border-cyan-500 hover:text-cyan-300"
+            >
+              ⇅ Reorder
+            </button>
+          ) : null}
           {pois.length > 0 ? (
             <button
               type="button"
@@ -468,7 +478,7 @@ export default function PoiMap({
 
       {/* Controller: last seen + driver accuracy — top-left */}
       {role !== 'driver' && lastSeenText ? (
-        <div className="pointer-events-none absolute left-3 top-3 z-[1000] flex flex-col gap-1">
+        <div className="pointer-events-none absolute left-3 top-20 z-[1000] flex flex-col gap-1">
           <div
             className={`rounded-full bg-slate-900/90 px-3 py-1 text-xs font-semibold shadow ${isStale ? 'text-red-400' : 'text-orange-300'}`}
           >
@@ -514,7 +524,7 @@ export default function PoiMap({
               <button
                 type="button"
                 onClick={() => setMenuOpen((v) => !v)}
-                aria-label="Menü"
+                aria-label="Menu"
                 className="flex h-full min-w-[2.25rem] items-center justify-center rounded-lg border border-slate-700 bg-slate-900/90 px-2 text-sm text-slate-300 shadow hover:text-slate-100"
               >
                 ☰
@@ -522,13 +532,13 @@ export default function PoiMap({
               {menuOpen && (
                 <div className="absolute right-0 top-full mt-1 min-w-[160px] rounded-lg border border-slate-700 bg-slate-900 p-3 shadow-xl">
                   <p className="text-sm font-semibold text-slate-200">{username}</p>
-                  <p className="mb-3 text-xs text-slate-500">🚗 Sofőr</p>
+                  <p className="mb-3 text-xs text-slate-500">🚗 Driver</p>
                   <button
                     type="button"
                     onClick={onLogout}
                     className="w-full rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:border-red-500 hover:text-red-300"
                   >
-                    Kilépés
+                    Log out
                   </button>
                 </div>
               )}
@@ -572,14 +582,14 @@ export default function PoiMap({
       {/* Both roles: done/total count — bottom-left */}
       {totalCount > 0 ? (
         <div className="pointer-events-none absolute bottom-3 left-3 z-[1000] rounded-full bg-slate-900/90 px-3 py-1 text-xs font-semibold text-slate-300 shadow">
-          {doneCount} / {totalCount} kész
+          {doneCount} / {totalCount} done
         </div>
       ) : null}
 
       {/* Controller: placing approach hint — top-center */}
       {role !== 'driver' && placingApproach ? (
         <div className="absolute left-1/2 top-3 z-[1000] flex -translate-x-1/2 items-center gap-3 rounded-full bg-cyan-600/90 px-4 py-1.5 text-xs font-bold text-white shadow">
-          <span>Long-press the map to place the ráfordító</span>
+          <span>Long-press the map to place the approach point</span>
           <button
             type="button"
             onClick={onCancelPlacement}

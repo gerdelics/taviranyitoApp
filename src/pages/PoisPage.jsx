@@ -3,7 +3,7 @@ import { useGeolocation } from '../hooks/useGeolocation'
 import { useFirebasePois } from '../hooks/useFirebasePois'
 import { useDriverPosition } from '../hooks/useDriverPosition'
 import { useWakeLock } from '../hooks/useWakeLock'
-import { AddMarkerDialog, PoiActionsDialog, PoiMap, Toast } from '../components'
+import { AddMarkerDialog, PoiActionsDialog, PoiMap, PoiReorderDialog, Toast } from '../components'
 import { isMobileDevice, navigateToPoi } from '../utils/poiNavigation'
 import { playBeep, playHaptic } from '../utils/audio'
 
@@ -40,12 +40,12 @@ export default function PoisPage({ role, pairKey, username, onLogout }) {
       if (role !== 'driver') return
       playBeep()
       playHaptic()
-      addToast(poi.description ? `Új pont: ${poi.description}` : 'Új pont érkezett!')
+      addToast(poi.description ? `New POI: ${poi.description}` : 'New POI received!')
     },
     [role, addToast],
   )
 
-  const { pois, addPoi, editPoi, deletePoi, clearAll, getNearestId } = useFirebasePois(pairKey, {
+  const { pois, addPoi, editPoi, deletePoi, clearAll, reorderPois, getNearestId } = useFirebasePois(pairKey, {
     onNewPoi: handleNewPoi,
   })
 
@@ -62,6 +62,7 @@ export default function PoisPage({ role, pairKey, username, onLogout }) {
   const [editing, setEditing] = useState(null)
   const [placingApproach, setPlacingApproach] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
+  const [reorderOpen, setReorderOpen] = useState(false)
 
   // Keep screen awake while driving so GPS keeps broadcasting
   useWakeLock(role === 'driver')
@@ -168,6 +169,7 @@ export default function PoisPage({ role, pairKey, username, onLogout }) {
         onMoveApproach={(id, lat, lon) => editPoi(id, { approach: { lat, lon } })}
         onClearAll={clearAll}
         onAddNewMarker={() => setAddOpen(true)}
+        onOpenReorder={() => setReorderOpen(true)}
         placingApproach={placingApproach}
         onCancelPlacement={() => setPlacingApproach(false)}
         doneCount={doneCount}
@@ -177,6 +179,14 @@ export default function PoisPage({ role, pairKey, username, onLogout }) {
       />
 
       <Toast toasts={toasts} onDismiss={dismissToast} />
+
+      <PoiReorderDialog
+        open={reorderOpen}
+        onClose={() => setReorderOpen(false)}
+        pois={pois}
+        onReorder={reorderPois}
+        driverLocation={driverLocation}
+      />
 
       <AddMarkerDialog
         key={addOpen ? 'add-open' : 'add-closed'}

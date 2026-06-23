@@ -16,9 +16,9 @@ export default function App() {
   }, [])
 
   const offlineMessage = !online
-    ? 'Nincs internetkapcsolat'
+    ? 'No internet connection'
     : !firebaseConnected
-      ? 'Firebase kapcsolat megszakadt'
+      ? 'Firebase connection lost'
       : null
 
   const isDriver = session?.role === 'driver'
@@ -29,7 +29,7 @@ export default function App() {
         <header className="border-b border-slate-800 bg-slate-900/90">
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
             <div>
-              <h1 className="text-lg font-semibold leading-tight">Távirányító · POIs</h1>
+              <h1 className="text-lg font-semibold leading-tight">Remote Controller · POIs</h1>
               <p className="text-xs text-slate-600">{APP_VERSION}</p>
             </div>
             <div className="flex items-center gap-3 text-sm">
@@ -39,14 +39,14 @@ export default function App() {
                     offlineMessage ? 'bg-red-500' : 'bg-green-500'
                   }`}
                 />
-                {session.username} · 🗺️ Irányító
+                {session.username} · 🗺️ Controller
               </span>
               <button
                 type="button"
                 onClick={logout}
                 className="rounded-lg border border-slate-700 px-3 py-1 text-slate-300 hover:border-red-500 hover:text-red-300"
               >
-                Kilépés
+                Log out
               </button>
             </div>
           </div>
@@ -55,7 +55,7 @@ export default function App() {
 
       {session && isDriver && (
         <header className="border-b border-slate-800 bg-slate-900/90 px-3 py-1">
-          <p className="text-xs text-slate-600">Távirányító · {APP_VERSION}</p>
+          <p className="text-xs text-slate-600">Remote Controller · {APP_VERSION}</p>
         </header>
       )}
 

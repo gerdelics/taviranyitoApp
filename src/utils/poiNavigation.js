@@ -1,5 +1,5 @@
 // Google Maps directions helpers for POI navigation. The Maps "dir" URL
-// supports a waypoint, so we can route current location -> ráfordító -> marker.
+// supports a waypoint, so we can route current location -> approach point -> marker.
 // Omitting `origin` makes Google Maps use the device's current location.
 
 function hasCoords(point) {
@@ -7,7 +7,7 @@ function hasCoords(point) {
 }
 
 // Build a Google Maps directions link to `destination`, optionally routing
-// through `waypoint` (the ráfordító / approach point) first. The start point is
+// through `waypoint` (the approach point) first. The start point is
 // left unset so Google Maps always uses the device's current position; the
 // waypoint is the second stop and the destination is the final target.
 export function buildGoogleMapsNavLink(destination, waypoint) {
@@ -33,8 +33,8 @@ export function isMobileDevice() {
 // navigating. On desktop we copy the link to the clipboard instead. Returns
 // 'opened' on mobile, true/false for the clipboard result on desktop.
 //
-// The marker is the destination; if the POI has a ráfordító it becomes a
-// waypoint, so the route is current location -> ráfordító -> marker.
+// The marker is the destination; if the POI has an approach point it becomes a
+// waypoint, so the route is current location -> approach point -> marker.
 export async function navigateToPoi(poi) {
   const link = buildGoogleMapsNavLink(poi, poi?.approach)
 

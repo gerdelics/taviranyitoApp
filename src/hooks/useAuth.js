@@ -15,7 +15,7 @@ export function useAuth() {
 
   const login = useCallback((username, password, role) => {
     if (!USERS[username] || USERS[username] !== password) {
-      return 'Hibás felhasználónév vagy jelszó.'
+      return 'Invalid username or password.'
     }
     const partner = PARTNER[username]
     const pairKey = [username, partner].sort().join('-')

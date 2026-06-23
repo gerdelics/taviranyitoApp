@@ -12,7 +12,7 @@ export function useRelativeTime(timestamp) {
     function tick() {
       const age = Date.now() - timestamp
       const secs = Math.floor(age / 1000)
-      const text = secs < 60 ? `${secs} mp` : `${Math.floor(secs / 60)} perce`
+      const text = secs < 60 ? `${secs}s ago` : `${Math.floor(secs / 60)}m ago`
       setResult({ text, isStale: age > 10_000 })
     }
 

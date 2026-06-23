@@ -9,7 +9,9 @@ export function useFirebasePois(pairKey, { onNewPoi } = {}) {
   const [pois, setPois] = useState([])
   const prevPublishedIdsRef = useRef(null)
   const onNewPoiRef = useRef(onNewPoi)
+  const poisRef = useRef(pois)
   useEffect(() => { onNewPoiRef.current = onNewPoi })
+  useEffect(() => { poisRef.current = pois }, [pois])
 
   useEffect(() => {
     if (!pairKey) return
@@ -20,7 +22,11 @@ export function useFirebasePois(pairKey, { onNewPoi } = {}) {
       const list = data
         ? Object.values(data)
             .map((poi) => ({ ...poi, approach: poi.approach ?? null }))
-            .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))
+            .sort((a, b) => {
+              const oa = a.order ?? Infinity
+              const ob = b.order ?? Infinity
+              return oa !== ob ? oa - ob : (a.createdAt ?? 0) - (b.createdAt ?? 0)
+            })
         : []
 
       if (prevPublishedIdsRef.current !== null) {
@@ -49,6 +55,7 @@ export function useFirebasePois(pairKey, { onNewPoi } = {}) {
         type: details.type || DEFAULT_POI_TYPE,
         createdAt: Date.now(),
         published: details.published ?? false,
+        order: poisRef.current.length,
       }
       if (details.approach != null) poiData.approach = details.approach
       set(dbRef(db, `taviranyito/${pairKey}/pois/${poiData.id}`), poiData)
@@ -78,6 +85,16 @@ export function useFirebasePois(pairKey, { onNewPoi } = {}) {
     remove(dbRef(db, `taviranyito/${pairKey}/pois`))
   }, [pairKey])
 
+  const reorderPois = useCallback(
+    (newOrderedIds) => {
+      if (!pairKey) return
+      const patch = {}
+      newOrderedIds.forEach((id, i) => { patch[`${id}/order`] = i })
+      update(dbRef(db, `taviranyito/${pairKey}/pois`), patch)
+    },
+    [pairKey],
+  )
+
   const getNearestId = useCallback(
     (currentLocation) => {
       if (
@@ -103,7 +120,7 @@ export function useFirebasePois(pairKey, { onNewPoi } = {}) {
   )
 
   return useMemo(
-    () => ({ pois, addPoi, editPoi, deletePoi, clearAll, getNearestId }),
-    [pois, addPoi, editPoi, deletePoi, clearAll, getNearestId],
+    () => ({ pois, addPoi, editPoi, deletePoi, clearAll, reorderPois, getNearestId }),
+    [pois, addPoi, editPoi, deletePoi, clearAll, reorderPois, getNearestId],
   )
 }

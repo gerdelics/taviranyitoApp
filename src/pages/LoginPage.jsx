@@ -16,7 +16,7 @@ export default function LoginPage({ onLogin }) {
   function handleCredentials(e) {
     e.preventDefault()
     if (!VALID_USERS.includes(username) || password !== PASSWORD) {
-      setError('Hibás felhasználónév vagy jelszó.')
+      setError('Invalid username or password.')
       return
     }
     setError('')
@@ -39,14 +39,15 @@ export default function LoginPage({ onLogin }) {
 
       <div className="flex h-full items-center justify-center">
         <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-8 shadow-xl">
-          <h2 className="text-center text-xl font-bold text-slate-100">Távirányító</h2>
+          <h2 className="text-center text-xl font-bold text-slate-100">Remote Controller</h2>
           <p className="mb-6 text-center text-xs text-slate-600">{APP_VERSION}</p>
 
           {step === 1 && (
             <form onSubmit={handleCredentials} className="flex flex-col gap-4">
               <div>
-                <label className="mb-1 block text-sm text-slate-400">Felhasználónév</label>
+                <label htmlFor="login-username" className="mb-1 block text-sm text-slate-400">Username</label>
                 <input
+                  id="login-username"
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value.toLowerCase().trim())}
@@ -57,8 +58,9 @@ export default function LoginPage({ onLogin }) {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm text-slate-400">Jelszó</label>
+                <label htmlFor="login-password" className="mb-1 block text-sm text-slate-400">Password</label>
                 <input
+                  id="login-password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -71,14 +73,14 @@ export default function LoginPage({ onLogin }) {
                 type="submit"
                 className="mt-2 rounded-lg bg-cyan-600 py-2.5 font-semibold text-white hover:bg-cyan-500"
               >
-                Tovább
+                Next
               </button>
               <button
                 type="button"
                 onClick={() => setShowWizard(true)}
                 className="rounded-lg border border-slate-700 py-2 text-sm text-slate-400 hover:border-slate-500 hover:text-slate-200"
               >
-                ❓ Hogyan használd?
+                ❓ How to use?
               </button>
             </form>
           )}
@@ -86,28 +88,28 @@ export default function LoginPage({ onLogin }) {
           {step === 2 && (
             <div className="flex flex-col gap-4">
               <p className="text-center text-sm text-slate-400">
-                Válassz módot, <strong className="text-slate-200">{username}</strong>!
+                Choose your role, <strong className="text-slate-200">{username}</strong>!
               </p>
               <button
                 type="button"
                 onClick={() => handleRoleSelect('driver')}
                 className="rounded-xl border border-slate-600 bg-slate-800 py-5 text-lg font-bold text-slate-100 hover:border-cyan-500 hover:text-cyan-300"
               >
-                🚗 Sofőr
+                🚗 Driver
               </button>
               <button
                 type="button"
                 onClick={() => handleRoleSelect('controller')}
                 className="rounded-xl border border-slate-600 bg-slate-800 py-5 text-lg font-bold text-slate-100 hover:border-orange-500 hover:text-orange-300"
               >
-                🗺️ Irányító
+                🗺️ Controller
               </button>
               <button
                 type="button"
                 onClick={() => setStep(1)}
                 className="rounded-lg py-2 text-sm text-slate-500 hover:text-slate-300"
               >
-                ← Vissza
+                ← Back
               </button>
             </div>
           )}
@@ -115,7 +117,7 @@ export default function LoginPage({ onLogin }) {
           {step === 3 && (
             <div className="flex flex-col gap-4">
               <p className="text-center text-sm text-slate-400">
-                Kivel osztod meg a pozíciódat?
+                Who are you sharing your position with?
               </p>
               <button
                 type="button"
@@ -129,7 +131,7 @@ export default function LoginPage({ onLogin }) {
                 onClick={() => setStep(2)}
                 className="rounded-lg py-2 text-sm text-slate-500 hover:text-slate-300"
               >
-                ← Vissza
+                ← Back
               </button>
             </div>
           )}

@@ -65,7 +65,7 @@ export default function PoiActionsDialog({
               {draft.description ? ` · ${typeLabel}` : ''}
               {' · '}
               <span className={isDone ? 'text-emerald-400' : 'text-yellow-400'}>
-                {isDone ? 'Kész' : 'Folyamatban'}
+                {isDone ? 'Done' : 'In progress'}
               </span>
               {distText ? (
                 <span className="text-slate-500"> · {distText}</span>
@@ -73,7 +73,7 @@ export default function PoiActionsDialog({
             </p>
             {draft.approach ? (
               <p className="text-xs text-slate-500">
-                Ráfordító: {draft.approach.lat.toFixed(4)}, {draft.approach.lon.toFixed(4)}
+                Approach: {draft.approach.lat.toFixed(4)}, {draft.approach.lon.toFixed(4)}
               </p>
             ) : null}
             {copyState === 'copied' ? <p className="text-xs text-emerald-400">Copied!</p> : null}
@@ -96,7 +96,7 @@ export default function PoiActionsDialog({
                 isDone ? 'bg-slate-700 active:bg-slate-600' : 'bg-emerald-600 active:bg-emerald-500'
               }`}
             >
-              {isDone ? 'Mégsem' : 'Kész'}
+              {isDone ? 'Undo' : 'Done'}
             </button>
           </div>
         </div>
@@ -141,7 +141,7 @@ export default function PoiActionsDialog({
 
         <div className="flex flex-col gap-2 rounded-lg border border-slate-700 bg-slate-800/40 px-3 py-2">
           <div className="flex items-center justify-between">
-            <span className={labelClass}>Ráfordító</span>
+            <span className={labelClass}>Approach</span>
             {draft.approach ? (
               <button
                 type="button"
@@ -164,7 +164,7 @@ export default function PoiActionsDialog({
             onClick={onPlaceApproach}
             className="self-start rounded-lg border border-slate-700 px-3 py-1.5 text-sm font-bold text-slate-100 hover:border-cyan-500 hover:text-cyan-300"
           >
-            {draft.approach ? 'Replace ráfordító' : 'Add ráfordító'}
+            {draft.approach ? 'Replace approach' : 'Add approach'}
           </button>
         </div>
 
