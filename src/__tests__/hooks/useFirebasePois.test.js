@@ -230,7 +230,7 @@ describe('useFirebasePois — reorderPois', () => {
   it('updates the pois root path', () => {
     const { result } = renderHook(() => useFirebasePois(PAIR_KEY))
     act(() => { result.current.reorderPois(['a']) })
-    expect(mockRef).toHaveBeenCalledWith(expect.anything(), `taviranyito/${PAIR_KEY}/pois`)
+    expect(mockRef).toHaveBeenCalledWith(expect.anything(), `taviranyito/drives/${PAIR_KEY}/pois`)
   })
 })
 
@@ -257,7 +257,7 @@ describe('useFirebasePois — editPoi / deletePoi / clearAll', () => {
     const { result } = renderHook(() => useFirebasePois(PAIR_KEY))
     act(() => { result.current.clearAll() })
     expect(mockRemove).toHaveBeenCalled()
-    expect(mockRef).toHaveBeenCalledWith(expect.anything(), `taviranyito/${PAIR_KEY}/pois`)
+    expect(mockRef).toHaveBeenCalledWith(expect.anything(), `taviranyito/drives/${PAIR_KEY}/pois`)
   })
 })
 

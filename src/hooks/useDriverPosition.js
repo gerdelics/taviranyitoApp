@@ -12,7 +12,7 @@ export function useDriverPosition(pairKey, role, location, writeIntervalMs = 300
     const now = Date.now()
     if (now - lastWriteRef.current < writeIntervalMs) return
     lastWriteRef.current = now
-    set(dbRef(db, `taviranyito/${pairKey}/driverPosition`), {
+    set(dbRef(db, `taviranyito/drives/${pairKey}/driverPosition`), {
       lat: location.lat,
       lon: location.lon,
       accuracy: location.accuracy,
@@ -23,7 +23,7 @@ export function useDriverPosition(pairKey, role, location, writeIntervalMs = 300
   // Controller: subscribe to driver's shared position
   useEffect(() => {
     if (role !== 'controller' || !pairKey) return
-    const posRef = dbRef(db, `taviranyito/${pairKey}/driverPosition`)
+    const posRef = dbRef(db, `taviranyito/drives/${pairKey}/driverPosition`)
     const unsubscribe = onValue(posRef, (snapshot) => {
       setDriverPosition(snapshot.val())
     })

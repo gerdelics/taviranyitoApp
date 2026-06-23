@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react'
+import { USERS } from '../config/users'
 
-const USERS = { sofor: 'qwe123', iranyito: 'qwe123' }
-const PARTNER = { sofor: 'iranyito', iranyito: 'sofor' }
 const SESSION_KEY = 'taviranyito_session'
 
 export function useAuth() {
@@ -13,13 +12,11 @@ export function useAuth() {
     }
   })
 
-  const login = useCallback((username, password, role) => {
+  const login = useCallback((username, password, role, driveId, driveName) => {
     if (!USERS[username] || USERS[username] !== password) {
       return 'Invalid username or password.'
     }
-    const partner = PARTNER[username]
-    const pairKey = [username, partner].sort().join('-')
-    const newSession = { username, role, partner, pairKey }
+    const newSession = { username, role, pairKey: driveId, driveName }
     localStorage.setItem(SESSION_KEY, JSON.stringify(newSession))
     setSession(newSession)
     return null

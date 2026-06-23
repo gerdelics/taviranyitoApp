@@ -16,7 +16,7 @@ export function useFirebasePois(pairKey, { onNewPoi } = {}) {
   useEffect(() => {
     if (!pairKey) return
     prevPublishedIdsRef.current = null
-    const poisRef = dbRef(db, `taviranyito/${pairKey}/pois`)
+    const poisRef = dbRef(db, `taviranyito/drives/${pairKey}/pois`)
     const unsubscribe = onValue(poisRef, (snapshot) => {
       const data = snapshot.val()
       const list = data
@@ -58,7 +58,7 @@ export function useFirebasePois(pairKey, { onNewPoi } = {}) {
         order: poisRef.current.length,
       }
       if (details.approach != null) poiData.approach = details.approach
-      set(dbRef(db, `taviranyito/${pairKey}/pois/${poiData.id}`), poiData)
+      set(dbRef(db, `taviranyito/drives/${pairKey}/pois/${poiData.id}`), poiData)
       return { ...poiData, approach: null }
     },
     [pairKey],
@@ -67,7 +67,7 @@ export function useFirebasePois(pairKey, { onNewPoi } = {}) {
   const editPoi = useCallback(
     (id, patch) => {
       if (!pairKey) return
-      update(dbRef(db, `taviranyito/${pairKey}/pois/${id}`), patch)
+      update(dbRef(db, `taviranyito/drives/${pairKey}/pois/${id}`), patch)
     },
     [pairKey],
   )
@@ -75,14 +75,14 @@ export function useFirebasePois(pairKey, { onNewPoi } = {}) {
   const deletePoi = useCallback(
     (id) => {
       if (!pairKey) return
-      remove(dbRef(db, `taviranyito/${pairKey}/pois/${id}`))
+      remove(dbRef(db, `taviranyito/drives/${pairKey}/pois/${id}`))
     },
     [pairKey],
   )
 
   const clearAll = useCallback(() => {
     if (!pairKey) return
-    remove(dbRef(db, `taviranyito/${pairKey}/pois`))
+    remove(dbRef(db, `taviranyito/drives/${pairKey}/pois`))
   }, [pairKey])
 
   const reorderPois = useCallback(
@@ -90,7 +90,7 @@ export function useFirebasePois(pairKey, { onNewPoi } = {}) {
       if (!pairKey) return
       const patch = {}
       newOrderedIds.forEach((id, i) => { patch[`${id}/order`] = i })
-      update(dbRef(db, `taviranyito/${pairKey}/pois`), patch)
+      update(dbRef(db, `taviranyito/drives/${pairKey}/pois`), patch)
     },
     [pairKey],
   )

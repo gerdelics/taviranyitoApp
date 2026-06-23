@@ -12,6 +12,8 @@
     "prepare": "node scripts/setup-hooks.js",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:report": "vitest run --reporter=html && start html/index.html",
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
@@ -34,6 +36,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.9",
+    "@vitest/ui": "^4.1.9",
     "autoprefixer": "^10.5.0",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
