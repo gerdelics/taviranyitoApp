@@ -30,7 +30,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-dvh flex-col bg-slate-950 text-slate-100">
+    <div className="pt-safe flex h-dvh flex-col bg-slate-950 text-slate-100">
       {session && !isDriver && (
         <header className="border-b border-slate-800 bg-slate-900/90">
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">

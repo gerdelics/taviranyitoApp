@@ -20,6 +20,11 @@ body {
   min-height: 100dvh;
 }
 
+/* Safe area utility for PWA status bar */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
 /* Leaflet + Tailwind compatibility */
 .leaflet-container {
   background: rgb(2 6 23);

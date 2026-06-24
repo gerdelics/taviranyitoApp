@@ -77,8 +77,8 @@ export default function PoisPage({ role, pairKey, username, onLogout }) {
   const isMobile = useMemo(() => isMobileDevice(), [])
 
   const nearestId = useMemo(
-    () => getNearestId(role === 'driver' ? location : null),
-    [getNearestId, role, location],
+    () => role === 'driver' ? (pois.find((p) => !p.done)?.id ?? null) : null,
+    [pois, role],
   )
 
   const doneCount = useMemo(() => pois.filter((p) => p.done).length, [pois])
