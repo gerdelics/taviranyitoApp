@@ -3,7 +3,7 @@ import { useGeolocation } from '../hooks/useGeolocation'
 import { useFirebasePois } from '../hooks/useFirebasePois'
 import { useDriverPosition } from '../hooks/useDriverPosition'
 import { useWakeLock } from '../hooks/useWakeLock'
-import { AddMarkerDialog, PoiActionsDialog, PoiMap, PoiReorderDialog, Toast } from '../components'
+import { AddMarkerDialog, ConfirmDialog, PoiActionsDialog, PoiMap, PoiReorderDialog, Toast } from '../components'
 import { isMobileDevice, navigateToPoi } from '../utils/poiNavigation'
 import { playBeep, playHaptic } from '../utils/audio'
 
@@ -63,6 +63,7 @@ export default function PoisPage({ role, pairKey, username, onLogout }) {
   const [placingApproach, setPlacingApproach] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [reorderOpen, setReorderOpen] = useState(false)
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false)
 
   // Keep screen awake while driving so GPS keeps broadcasting
   useWakeLock(role === 'driver')
@@ -167,7 +168,7 @@ export default function PoisPage({ role, pairKey, username, onLogout }) {
         onMarkerClick={handleMarkerClick}
         onMovePoi={(id, lat, lon) => editPoi(id, { lat, lon })}
         onMoveApproach={(id, lat, lon) => editPoi(id, { approach: { lat, lon } })}
-        onClearAll={clearAll}
+        onClearAll={() => setClearConfirmOpen(true)}
         onAddNewMarker={() => setAddOpen(true)}
         onOpenReorder={() => setReorderOpen(true)}
         placingApproach={placingApproach}
@@ -186,6 +187,18 @@ export default function PoisPage({ role, pairKey, username, onLogout }) {
         pois={pois}
         onReorder={reorderPois}
         driverLocation={driverLocation}
+      />
+
+      <ConfirmDialog
+        open={clearConfirmOpen}
+        title="Clear all POIs"
+        message="Are you sure you want to delete all POIs? This cannot be undone."
+        confirmLabel="Clear all"
+        onConfirm={() => {
+          clearAll()
+          setClearConfirmOpen(false)
+        }}
+        onClose={() => setClearConfirmOpen(false)}
       />
 
       <AddMarkerDialog
