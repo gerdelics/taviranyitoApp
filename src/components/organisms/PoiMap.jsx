@@ -549,7 +549,7 @@ export default function PoiMap({
 
       {/* Driver: open nearest POI — bottom-center */}
       {role === 'driver' && nearestId ? (
-        <div className="absolute bottom-3 left-1/2 z-[1000] -translate-x-1/2">
+        <div className="absolute bottom-14 left-1/2 z-[1000] -translate-x-1/2">
           <button
             type="button"
             onClick={() => {
@@ -563,7 +563,7 @@ export default function PoiMap({
               }
               onMarkerClickRef.current?.(nearestId)
             }}
-            className="rounded-full bg-cyan-600 px-5 py-2 text-sm font-bold text-white shadow-lg active:bg-cyan-700"
+            className="rounded-full bg-cyan-600 px-8 py-4 text-base font-bold text-white shadow-lg active:bg-cyan-700"
           >
             Next POI
           </button>
@@ -573,7 +573,7 @@ export default function PoiMap({
       {/* Driver: GPS accuracy — bottom-right */}
       {role === 'driver' && typeof currentLocation?.accuracy === 'number' ? (
         <div
-          className={`pointer-events-none absolute bottom-3 right-3 z-[1000] rounded-full bg-slate-900/90 px-3 py-1 text-xs font-semibold shadow ${accuracyColor(currentLocation.accuracy)}`}
+          className={`pointer-events-none absolute bottom-3 right-3 z-[1000] rounded-full bg-slate-900/90 px-4 py-1.5 text-sm font-semibold shadow ${accuracyColor(currentLocation.accuracy)}`}
         >
           GPS: ±{Math.round(currentLocation.accuracy)} m
         </div>
@@ -581,7 +581,7 @@ export default function PoiMap({
 
       {/* Both roles: done/total count — bottom-left */}
       {totalCount > 0 ? (
-        <div className="pointer-events-none absolute bottom-3 left-3 z-[1000] rounded-full bg-slate-900/90 px-3 py-1 text-xs font-semibold text-slate-300 shadow">
+        <div className="pointer-events-none absolute bottom-3 left-3 z-[1000] rounded-full bg-slate-900/90 px-4 py-1.5 text-sm font-semibold text-slate-300 shadow">
           {doneCount} / {totalCount} done
         </div>
       ) : null}
