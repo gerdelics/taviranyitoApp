@@ -19,10 +19,11 @@ function draftFromPoi(poi, isNew) {
     description: poi.description,
     approach: poi.approach ?? null,
     done: poi.done,
+    dropped: poi.dropped ?? false,
   }
 }
 
-export default function PoisPage({ role, pairKey, username, onLogout }) {
+export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriveSwitcher }) {
   const { location, startWatching, stopWatching } = useGeolocation()
 
   const [toasts, setToasts] = useState([])
@@ -45,7 +46,7 @@ export default function PoisPage({ role, pairKey, username, onLogout }) {
     [role, addToast],
   )
 
-  const { pois, addPoi, editPoi, deletePoi, clearAll, reorderPois, getNearestId } = useFirebasePois(pairKey, {
+  const { pois, addPoi, editPoi, deletePoi, clearAll, reorderPois } = useFirebasePois(pairKey, {
     onNewPoi: handleNewPoi,
   })
 
@@ -64,6 +65,10 @@ export default function PoisPage({ role, pairKey, username, onLogout }) {
   const [addOpen, setAddOpen] = useState(false)
   const [reorderOpen, setReorderOpen] = useState(false)
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false)
+  // The POI the driver last chose to drive to. Overrides the automatic "first
+  // pending" target so the highlight follows an out-of-order Drive tap. State
+  // resets naturally on a drive switch because App keys this page by pairKey.
+  const [activeTargetId, setActiveTargetId] = useState(null)
 
   // Keep screen awake while driving so GPS keeps broadcasting
   useWakeLock(role === 'driver')
@@ -77,10 +82,15 @@ export default function PoisPage({ role, pairKey, username, onLogout }) {
 
   const isMobile = useMemo(() => isMobileDevice(), [])
 
-  const nearestId = useMemo(
-    () => role === 'driver' ? (pois.find((p) => !p.done)?.id ?? null) : null,
-    [pois, role],
-  )
+  // Pending = still an active target (neither done nor skipped).
+  const nearestId = useMemo(() => {
+    if (role !== 'driver') return null
+    const isPending = (p) => !p.done && !p.dropped
+    if (activeTargetId && pois.some((p) => p.id === activeTargetId && isPending(p))) {
+      return activeTargetId
+    }
+    return pois.find(isPending)?.id ?? null
+  }, [pois, role, activeTargetId])
 
   const doneCount = useMemo(() => pois.filter((p) => p.done).length, [pois])
 
@@ -89,8 +99,13 @@ export default function PoisPage({ role, pairKey, username, onLogout }) {
     let sequence = 0
     for (const poi of pois) {
       const isDone = poi.id === editing.id ? editing.done : poi.done
-      if (!isDone) sequence += 1
-      if (poi.id === editing.id) return isDone ? '-' : String(sequence)
+      const isDropped = poi.id === editing.id ? editing.dropped : poi.dropped
+      const resolved = isDone || isDropped
+      if (!resolved) sequence += 1
+      if (poi.id === editing.id) {
+        if (!resolved) return String(sequence)
+        return isDropped && !isDone ? '×' : '-'
+      }
     }
     return ''
   }, [pois, editing])
@@ -110,8 +125,23 @@ export default function PoisPage({ role, pairKey, username, onLogout }) {
 
   function handleMarkDone() {
     if (!editing) return
-    editPoi(editing.id, { done: !editing.done })
+    const done = !editing.done
+    // Done and skipped are mutually exclusive statuses.
+    editPoi(editing.id, done ? { done: true, dropped: false } : { done: false })
     setEditing(null)
+  }
+
+  function handleDrop() {
+    if (!editing) return
+    const dropped = !editing.dropped
+    editPoi(editing.id, dropped ? { dropped: true, done: false } : { dropped: false })
+    setEditing(null)
+  }
+
+  // Driver pressed "Drive": make this POI the active target and open Maps.
+  function handleDrive(poi) {
+    setActiveTargetId(poi.id)
+    return navigateToPoi(poi)
   }
 
   function handleMarkerClick(id) {
@@ -177,6 +207,7 @@ export default function PoisPage({ role, pairKey, username, onLogout }) {
         totalCount={pois.length}
         gpsInterval={gpsInterval}
         onChangeGpsInterval={handleChangeGpsInterval}
+        onOpenDriveSwitcher={onOpenDriveSwitcher}
       />
 
       <Toast toasts={toasts} onDismiss={dismissToast} />
@@ -221,12 +252,13 @@ export default function PoisPage({ role, pairKey, username, onLogout }) {
         role={role}
         isMobile={isMobile}
         onChange={handleDraftChange}
-        onNavigate={navigateToPoi}
+        onNavigate={role === 'driver' ? handleDrive : navigateToPoi}
         onPlaceApproach={() => setPlacingApproach(true)}
         onSave={handleSave}
         onCancel={handleCancel}
         onDelete={handleDelete}
         onMarkDone={handleMarkDone}
+        onDrop={handleDrop}
         currentLocation={role === 'driver' ? location : null}
       />
     </div>

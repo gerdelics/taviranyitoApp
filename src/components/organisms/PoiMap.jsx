@@ -9,6 +9,7 @@ const TILE_ATTRIBUTION = '&copy; OpenStreetMap contributors'
 const COLOR_DONE = '#22c55e'
 const COLOR_NEAREST = '#0ea5e9'
 const COLOR_DEFAULT = '#ef4444'
+const COLOR_DROPPED = '#64748b'
 
 const LONG_PRESS_MS = 500
 const MOVE_CANCEL_PX = 10
@@ -16,6 +17,9 @@ const MOVE_CANCEL_PX = 10
 function poiColor(poi, nearestId) {
   if (poi.done) {
     return COLOR_DONE
+  }
+  if (poi.dropped) {
+    return COLOR_DROPPED
   }
   if (poi.id === nearestId) {
     return COLOR_NEAREST
@@ -193,6 +197,7 @@ export default function PoiMap({
   onChangeGpsInterval,
   username,
   onLogout,
+  onOpenDriveSwitcher,
 }) {
   const { text: lastSeenText, isStale } = useRelativeTime(driverLocation?.timestamp)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -346,9 +351,11 @@ export default function PoiMap({
       )
 
       let label = '-'
-      if (!poi.done) {
+      if (!poi.done && !poi.dropped) {
         sequence += 1
         label = String(sequence)
+      } else if (poi.dropped && !poi.done) {
+        label = '×'
       }
 
       const marker = L.marker([poi.lat, poi.lon], {
@@ -533,6 +540,18 @@ export default function PoiMap({
                 <div className="absolute right-0 top-full mt-1 min-w-[160px] rounded-lg border border-slate-700 bg-slate-900 p-3 shadow-xl">
                   <p className="text-sm font-semibold text-slate-200">{username}</p>
                   <p className="mb-3 text-xs text-slate-500">🚗 Driver</p>
+                  {onOpenDriveSwitcher ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        onOpenDriveSwitcher()
+                      }}
+                      className="mb-2 w-full rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:border-cyan-500 hover:text-cyan-300"
+                    >
+                      Switch drive
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     onClick={onLogout}

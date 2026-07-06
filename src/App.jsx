@@ -1,15 +1,17 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from './hooks/useAuth'
 import { useConnectionStatus } from './hooks/useConnectionStatus'
 import { archiveDrive } from './hooks/useDrives'
+import { DriveSwitcherDialog, PwaReloadPrompt } from './components'
 import PoisPage from './pages/PoisPage'
 import LoginPage from './pages/LoginPage'
 import { APP_VERSION } from './version'
 import { unlockAudio } from './utils/audio'
 
 export default function App() {
-  const { session, login, logout } = useAuth()
+  const { session, login, logout, switchDrive } = useAuth()
   const { online, firebaseConnected } = useConnectionStatus()
+  const [switcherOpen, setSwitcherOpen] = useState(false)
 
   useEffect(() => {
     document.addEventListener('touchstart', unlockAudio, { once: true })
@@ -29,8 +31,14 @@ export default function App() {
     logout()
   }
 
+  function handleSwitchDrive(driveId, driveName) {
+    switchDrive(driveId, driveName)
+    setSwitcherOpen(false)
+  }
+
   return (
     <div className="pt-safe flex h-dvh flex-col bg-slate-950 text-slate-100">
+      <PwaReloadPrompt />
       {session && !isDriver && (
         <header className="border-b border-slate-800 bg-slate-900/90">
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
@@ -46,6 +54,13 @@ export default function App() {
                   offlineMessage ? 'bg-red-500' : 'bg-green-500'
                 }`}
               />
+              <button
+                type="button"
+                onClick={() => setSwitcherOpen(true)}
+                className="rounded-lg border border-slate-700 px-3 py-1 text-slate-300 hover:border-cyan-500 hover:text-cyan-300"
+              >
+                Drives
+              </button>
               <button
                 type="button"
                 onClick={handleArchive}
@@ -84,15 +99,28 @@ export default function App() {
       <main className={`w-full min-h-0 flex-1 ${isDriver ? '' : 'mx-auto max-w-6xl px-4 py-3'}`}>
         {session ? (
           <PoisPage
+            key={session.pairKey}
             role={session.role}
             pairKey={session.pairKey}
             username={session.username}
             onLogout={logout}
+            onOpenDriveSwitcher={() => setSwitcherOpen(true)}
           />
         ) : (
           <LoginPage onLogin={login} />
         )}
       </main>
+
+      {session && (
+        <DriveSwitcherDialog
+          open={switcherOpen}
+          onClose={() => setSwitcherOpen(false)}
+          username={session.username}
+          role={session.role}
+          currentDriveId={session.pairKey}
+          onSwitch={handleSwitchDrive}
+        />
+      )}
     </div>
   )
 }

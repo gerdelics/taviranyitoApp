@@ -17,6 +17,7 @@ export default function PoiActionsDialog({
   onCancel,
   onDelete,
   onMarkDone,
+  onDrop,
   currentLocation,
 }) {
   const [copyState, setCopyState] = useState(null)
@@ -42,6 +43,13 @@ export default function PoiActionsDialog({
 
   if (role === 'driver') {
     const isDone = draft.done
+    const isDropped = draft.dropped && !isDone
+    const statusText = isDone ? 'Done' : isDropped ? 'Skipped' : 'In progress'
+    const statusClass = isDone
+      ? 'text-emerald-400'
+      : isDropped
+        ? 'text-slate-400'
+        : 'text-yellow-400'
     const distKm = currentLocation ? haversineKm(currentLocation, draft) : null
     const distText = distKm !== null
       ? distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(1)} km`
@@ -64,9 +72,7 @@ export default function PoiActionsDialog({
               #{number}
               {draft.description ? ` · ${typeLabel}` : ''}
               {' · '}
-              <span className={isDone ? 'text-emerald-400' : 'text-yellow-400'}>
-                {isDone ? 'Done' : 'In progress'}
-              </span>
+              <span className={statusClass}>{statusText}</span>
               {distText ? (
                 <span className="text-slate-500"> · {distText}</span>
               ) : null}
@@ -80,7 +86,7 @@ export default function PoiActionsDialog({
             {copyState === 'error' ? <p className="text-xs text-red-400">Copy failed</p> : null}
           </div>
 
-          {/* Right 1/3: Drive + Done */}
+          {/* Right 1/3: Drive + Done + Skip */}
           <div className="flex flex-[1] flex-col gap-2">
             <button
               type="button"
@@ -97,6 +103,17 @@ export default function PoiActionsDialog({
               }`}
             >
               {isDone ? 'Undo' : 'Done'}
+            </button>
+            <button
+              type="button"
+              onClick={onDrop}
+              className={`min-h-[2.75rem] rounded-xl border text-sm font-bold ${
+                isDropped
+                  ? 'border-slate-500 bg-slate-700 text-white active:bg-slate-600'
+                  : 'border-amber-600/70 text-amber-400 active:bg-amber-600/10'
+              }`}
+            >
+              {isDropped ? 'Restore' : 'Skip'}
             </button>
           </div>
         </div>
