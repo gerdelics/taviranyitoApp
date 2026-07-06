@@ -260,6 +260,7 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
         onMarkDone={handleMarkDone}
         onDrop={handleDrop}
         currentLocation={role === 'driver' ? location : null}
+        driverLocation={role !== 'driver' ? driverLocation : null}
       />
     </div>
   )

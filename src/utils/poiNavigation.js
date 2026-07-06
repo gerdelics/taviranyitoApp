@@ -10,16 +10,30 @@ function hasCoords(point) {
 // through `waypoint` (the approach point) first. The start point is
 // left unset so Google Maps always uses the device's current position; the
 // waypoint is the second stop and the destination is the final target.
-export function buildGoogleMapsNavLink(destination, waypoint) {
+// Pass `origin` to set an explicit start point (e.g. the driver's position).
+export function buildGoogleMapsNavLink(destination, waypoint, origin) {
   const params = new URLSearchParams({
     api: '1',
     destination: `${destination.lat},${destination.lon}`,
     travelmode: 'driving',
   })
+  if (hasCoords(origin)) {
+    params.set('origin', `${origin.lat},${origin.lon}`)
+  }
   if (hasCoords(waypoint)) {
     params.set('waypoints', `${waypoint.lat},${waypoint.lon}`)
   }
   return `https://www.google.com/maps/dir/?${params.toString()}`
+}
+
+// Open a route preview from the driver's last known position to the POI.
+// Always opens in a new tab so the dispatcher stays in the app.
+// Returns false if driverLocation is missing.
+export function checkRouteToPoi(poi, driverLocation) {
+  if (!hasCoords(driverLocation)) return false
+  const link = buildGoogleMapsNavLink(poi, poi?.approach, driverLocation)
+  window.open(link, '_blank', 'noopener')
+  return true
 }
 
 export function isMobileDevice() {

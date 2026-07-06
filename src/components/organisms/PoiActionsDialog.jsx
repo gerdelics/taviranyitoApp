@@ -3,6 +3,7 @@ import BaseModal from './BaseModal'
 import OverlayModal from './OverlayModal'
 import { POI_TYPES } from '../../utils/poiTypes'
 import { haversineKm } from '../../utils/geo'
+import { checkRouteToPoi } from '../../utils/poiNavigation'
 
 export default function PoiActionsDialog({
   open,
@@ -19,6 +20,7 @@ export default function PoiActionsDialog({
   onMarkDone,
   onDrop,
   currentLocation,
+  driverLocation,
 }) {
   const [copyState, setCopyState] = useState(null)
 
@@ -184,6 +186,16 @@ export default function PoiActionsDialog({
             {draft.approach ? 'Replace approach' : 'Add approach'}
           </button>
         </div>
+
+        {driverLocation ? (
+          <button
+            type="button"
+            onClick={() => checkRouteToPoi(draft, driverLocation)}
+            className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-500"
+          >
+            Check Route
+          </button>
+        ) : null}
 
         <div>
           <button
