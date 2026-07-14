@@ -202,6 +202,7 @@ export default function PoiMap({
   onToggleRouteMode,
   onOpenRoute,
   doneCount = 0,
+  droppedCount = 0,
   totalCount = 0,
   gpsInterval = 2000,
   onChangeGpsInterval,
@@ -705,7 +706,7 @@ export default function PoiMap({
       {/* Both roles: done/total count — bottom-left */}
       {totalCount > 0 ? (
         <div className="pointer-events-none absolute bottom-3 left-3 z-[1000] rounded-full bg-slate-900/90 px-4 py-1.5 text-sm font-semibold text-slate-300 shadow">
-          {doneCount} / {totalCount} done
+          {doneCount + droppedCount} / {totalCount} done
         </div>
       ) : null}
 

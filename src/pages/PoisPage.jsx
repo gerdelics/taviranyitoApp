@@ -97,6 +97,10 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
   }, [pois, role, activeTargetId])
 
   const doneCount = useMemo(() => pois.filter((p) => p.done).length, [pois])
+  const droppedCount = useMemo(
+    () => pois.filter((p) => p.dropped && !p.done).length,
+    [pois],
+  )
 
   const editingLabel = useMemo(() => {
     if (!editing) return ''
@@ -241,6 +245,7 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
         onToggleRouteMode={handleToggleRouteMode}
         onOpenRoute={handleOpenRoute}
         doneCount={doneCount}
+        droppedCount={droppedCount}
         totalCount={pois.length}
         gpsInterval={gpsInterval}
         onChangeGpsInterval={handleChangeGpsInterval}
