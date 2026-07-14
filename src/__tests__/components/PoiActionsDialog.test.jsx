@@ -55,7 +55,7 @@ describe('PoiActionsDialog — driver role', () => {
 
   it('shows the type label when description is empty', () => {
     driverRender({ draft: { ...BASE_POI, description: '' } })
-    expect(screen.getByText('Roadworks')).toBeInTheDocument()
+    expect(screen.getByText(/Roadworks/)).toBeInTheDocument()
   })
 
   it('shows distance when currentLocation is set', () => {

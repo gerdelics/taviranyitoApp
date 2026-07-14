@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import BaseModal from './BaseModal'
 import OverlayModal from './OverlayModal'
-import { POI_TYPES } from '../../utils/poiTypes'
+import { POI_TYPES, getPoiTypeIcon } from '../../utils/poiTypes'
 import { haversineKm } from '../../utils/geo'
 import { checkRouteToPoi } from '../../utils/poiNavigation'
 
@@ -42,6 +42,7 @@ export default function PoiActionsDialog({
   }
 
   const typeLabel = POI_TYPES.find((t) => t.value === draft.type)?.label ?? draft.type
+  const typeIcon = getPoiTypeIcon(draft.type)
 
   if (role === 'driver') {
     const isDone = draft.done
@@ -68,11 +69,11 @@ export default function PoiActionsDialog({
           {/* Left 2/3: info */}
           <div className="flex min-w-0 flex-[2] flex-col justify-center gap-1">
             <p className="truncate text-base font-bold text-slate-100">
-              {draft.description || typeLabel}
+              {draft.description || `${typeIcon} ${typeLabel}`.trim()}
             </p>
             <p className="text-xs text-slate-400">
               #{number}
-              {draft.description ? ` · ${typeLabel}` : ''}
+              {draft.description ? ` · ${`${typeIcon} ${typeLabel}`.trim()}` : ''}
               {' · '}
               <span className={statusClass}>{statusText}</span>
               {distText ? (
@@ -141,7 +142,7 @@ export default function PoiActionsDialog({
           >
             {POI_TYPES.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label}
+                {option.icon} {option.label}
               </option>
             ))}
           </select>

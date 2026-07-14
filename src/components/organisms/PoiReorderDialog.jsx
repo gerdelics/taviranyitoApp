@@ -15,7 +15,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import OverlayModal from './OverlayModal'
-import { getPoiTypeLabel } from '../../utils/poiTypes'
+import { getPoiTypeLabel, getPoiTypeIcon } from '../../utils/poiTypes'
 import { haversineKm } from '../../utils/geo'
 
 function formatCreatedAt(ts) {
@@ -40,7 +40,7 @@ function SortableRow({ id, index, poi, driverLocation }) {
 
   const style = { transform: CSS.Transform.toString(transform), transition }
 
-  const typeLabel = getPoiTypeLabel(poi.type)
+  const typeLabel = `${getPoiTypeIcon(poi.type)} ${getPoiTypeLabel(poi.type)}`.trim()
   const dist = formatDist(driverLocation, poi)
   const createdAt = formatCreatedAt(poi.createdAt)
 

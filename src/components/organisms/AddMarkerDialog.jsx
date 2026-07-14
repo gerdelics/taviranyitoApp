@@ -67,7 +67,7 @@ export default function AddMarkerDialog({
           >
             {POI_TYPES.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label}
+                {option.icon} {option.label}
               </option>
             ))}
           </select>
