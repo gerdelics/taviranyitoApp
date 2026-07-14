@@ -27,6 +27,7 @@
               "lat": { ".validate": "newData.isNumber()" },
               "lon": { ".validate": "newData.isNumber()" },
               "done": { ".validate": "newData.isBoolean()" },
+              "dropped": { ".validate": "newData.isBoolean()" },
               "published": { ".validate": "newData.isBoolean()" },
               "description": { ".validate": "newData.isString()" },
               "type": { ".validate": "newData.isString()" },
