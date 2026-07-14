@@ -7,14 +7,26 @@ import PoisPage from './pages/PoisPage'
 import LoginPage from './pages/LoginPage'
 import { APP_VERSION } from './version'
 import { unlockAudio } from './utils/audio'
+import { authReady } from './firebase'
 
 export default function App() {
   const { session, login, logout, switchDrive } = useAuth()
   const { online, firebaseConnected } = useConnectionStatus()
   const [switcherOpen, setSwitcherOpen] = useState(false)
+  // Wait for the anonymous Firebase sign-in before rendering anything that
+  // reads or writes the database (rules require auth != null).
+  const [authInitialized, setAuthInitialized] = useState(false)
+  const [authFailed, setAuthFailed] = useState(false)
 
   useEffect(() => {
     document.addEventListener('touchstart', unlockAudio, { once: true })
+  }, [])
+
+  useEffect(() => {
+    authReady.then(
+      () => setAuthInitialized(true),
+      () => setAuthFailed(true),
+    )
   }, [])
 
   const offlineMessage = !online
@@ -34,6 +46,24 @@ export default function App() {
   function handleSwitchDrive(driveId, driveName) {
     switchDrive(driveId, driveName)
     setSwitcherOpen(false)
+  }
+
+  if (!authInitialized) {
+    return (
+      <div className="pt-safe flex h-dvh flex-col items-center justify-center bg-slate-950 text-slate-100">
+        <PwaReloadPrompt />
+        {authFailed ? (
+          <div className="max-w-sm px-6 text-center">
+            <p className="text-sm font-semibold text-red-300">Could not connect to Firebase</p>
+            <p className="mt-2 text-xs text-slate-500">
+              Anonymous sign-in failed. Check your connection and reload.
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500">Connecting…</p>
+        )}
+      </div>
+    )
   }
 
   return (

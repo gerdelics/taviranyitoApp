@@ -1,0 +1,49 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "taviranyito": {
+      "drives": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "$driveId": {
+          ".validate": "newData.hasChildren(['driver', 'controller', 'createdAt'])",
+          "name": { ".validate": "newData.isString()" },
+          "driver": { ".validate": "newData.isString()" },
+          "controller": { ".validate": "newData.isString()" },
+          "createdAt": { ".validate": "newData.isNumber()" },
+          "driverPosition": {
+            ".validate": "newData.hasChildren(['lat', 'lon'])",
+            "lat": { ".validate": "newData.isNumber()" },
+            "lon": { ".validate": "newData.isNumber()" },
+            "accuracy": { ".validate": "newData.isNumber()" },
+            "timestamp": { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": false }
+          },
+          "pois": {
+            "$poiId": {
+              ".validate": "newData.hasChildren(['id', 'lat', 'lon'])",
+              "id": { ".validate": "newData.isString()" },
+              "lat": { ".validate": "newData.isNumber()" },
+              "lon": { ".validate": "newData.isNumber()" },
+              "done": { ".validate": "newData.isBoolean()" },
+              "published": { ".validate": "newData.isBoolean()" },
+              "description": { ".validate": "newData.isString()" },
+              "type": { ".validate": "newData.isString()" },
+              "createdAt": { ".validate": "newData.isNumber()" },
+              "order": { ".validate": "newData.isNumber()" },
+              "approach": {
+                ".validate": "newData.hasChildren(['lat', 'lon'])",
+                "lat": { ".validate": "newData.isNumber()" },
+                "lon": { ".validate": "newData.isNumber()" },
+                "$other": { ".validate": false }
+              },
+              "$other": { ".validate": false }
+            }
+          },
+          "$other": { ".validate": true }
+        }
+      }
+    }
+  }
+}
