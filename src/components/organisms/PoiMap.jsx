@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import { useRelativeTime } from '../../hooks/useRelativeTime'
+import { getPoiTypeIcon, getPoiTypeLabel } from '../../utils/poiTypes'
+import { buildRouteLinks } from '../../utils/poiNavigation'
 
 const DEFAULT_CENTER = [47.4979, 19.0402]
 const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
@@ -27,8 +29,11 @@ function poiColor(poi, nearestId) {
   return COLOR_DEFAULT
 }
 
-function buildMarkerIcon(label, color) {
-  const html = `<div style="width:28px;height:28px;border-radius:9999px;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.5)">${label}</div>`
+function buildMarkerIcon(label, color, selected = false) {
+  const shadow = selected
+    ? 'box-shadow:0 0 0 3px #f59e0b,0 1px 3px rgba(0,0,0,.5)'
+    : 'box-shadow:0 1px 3px rgba(0,0,0,.5)'
+  const html = `<div style="width:28px;height:28px;border-radius:9999px;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;border:2px solid #fff;${shadow}">${label}</div>`
   return L.divIcon({ html, className: '', iconSize: [28, 28], iconAnchor: [14, 14] })
 }
 
@@ -184,6 +189,7 @@ export default function PoiMap({
   role,
   onLongPress,
   onMarkerClick,
+  onMarkActiveDone,
   onMovePoi,
   onMoveApproach,
   onClearAll,
@@ -191,6 +197,10 @@ export default function PoiMap({
   onOpenReorder,
   placingApproach = false,
   onCancelPlacement,
+  routeSelectMode = false,
+  selectedRouteIds = [],
+  onToggleRouteMode,
+  onOpenRoute,
   doneCount = 0,
   totalCount = 0,
   gpsInterval = 2000,
@@ -201,6 +211,20 @@ export default function PoiMap({
 }) {
   const { text: lastSeenText, isStale } = useRelativeTime(driverLocation?.timestamp)
   const [menuOpen, setMenuOpen] = useState(false)
+  // Screen-space position of the active POI, used to anchor the info bubble so
+  // it tracks the marker as the map pans/zooms. Null when there is no target.
+  const [activePoiPoint, setActivePoiPoint] = useState(null)
+
+  const activePoi = pois.find((p) => p.id === nearestId) ?? null
+
+  // Route-check mode: the selected POIs in POI order, and the Google Maps
+  // route link(s) they produce (split into overlapping segments when long).
+  const selectedRoutePois = routeSelectMode
+    ? pois.filter((p) => selectedRouteIds.includes(p.id))
+    : []
+  const routeLinks = buildRouteLinks(
+    selectedRoutePois.map((p) => ({ lat: p.lat, lon: p.lon })),
+  )
 
   const containerRef = useRef(null)
   const mapRef = useRef(null)
@@ -359,7 +383,11 @@ export default function PoiMap({
       }
 
       const marker = L.marker([poi.lat, poi.lon], {
-        icon: buildMarkerIcon(label, poiColor(poi, nearestId)),
+        icon: buildMarkerIcon(
+          label,
+          poiColor(poi, nearestId),
+          routeSelectMode && selectedRouteIds.includes(poi.id),
+        ),
       }).addTo(layer)
 
       const clickGuard = { dragged: false }
@@ -377,7 +405,24 @@ export default function PoiMap({
         clickGuard,
       )
     })
-  }, [pois, nearestId])
+  }, [pois, nearestId, routeSelectMode, selectedRouteIds])
+
+  // Keep the active-POI info bubble anchored to its marker: recompute the
+  // marker's screen position on every map move/zoom so the bubble follows it.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !activePoi) {
+      setActivePoiPoint(null)
+      return undefined
+    }
+    const update = () =>
+      setActivePoiPoint(map.latLngToContainerPoint([activePoi.lat, activePoi.lon]))
+    update()
+    map.on('move zoom resize', update)
+    return () => {
+      map.off('move zoom resize', update)
+    }
+  }, [activePoi?.id, activePoi?.lat, activePoi?.lon])
 
   // Current GPS position marker, plus a one-time recenter on first fix.
   useEffect(() => {
@@ -453,7 +498,7 @@ export default function PoiMap({
       <div ref={containerRef} className="h-full w-full" />
 
       {/* Controller: action buttons top-right */}
-      {role !== 'driver' && !placingApproach ? (
+      {role !== 'driver' && !placingApproach && !routeSelectMode ? (
         <div className="absolute right-3 top-3 z-[1000] flex flex-col gap-2">
           {pois.filter((p) => !p.done).length > 1 ? (
             <button
@@ -462,6 +507,15 @@ export default function PoiMap({
               className="rounded-lg border border-slate-700 bg-slate-900/90 px-3 py-2 text-sm font-bold text-slate-100 shadow hover:border-cyan-500 hover:text-cyan-300"
             >
               ⇅ Reorder
+            </button>
+          ) : null}
+          {pois.length > 1 ? (
+            <button
+              type="button"
+              onClick={onToggleRouteMode}
+              className="rounded-lg border border-slate-700 bg-slate-900/90 px-3 py-2 text-sm font-bold text-slate-100 shadow hover:border-cyan-500 hover:text-cyan-300"
+            >
+              🧭 Check route
             </button>
           ) : null}
           {pois.length > 0 ? (
@@ -589,6 +643,56 @@ export default function PoiMap({
         </div>
       ) : null}
 
+      {/* Driver: always-visible info bubble anchored to the active POI */}
+      {role === 'driver' && activePoi && activePoiPoint ? (
+        <div
+          className="absolute z-[900] w-max max-w-[16rem]"
+          style={{
+            left: activePoiPoint.x,
+            top: activePoiPoint.y,
+            transform: 'translate(-50%, calc(-100% - 22px))',
+          }}
+        >
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              if (mapRef.current) {
+                mapRef.current.setView(
+                  [activePoi.lat, activePoi.lon],
+                  mapRef.current.getZoom(),
+                  { animate: true },
+                )
+              }
+              onMarkerClickRef.current?.(activePoi.id)
+            }}
+            className="relative cursor-pointer rounded-2xl border border-slate-700 bg-slate-900/95 px-3 py-2 shadow-xl"
+          >
+            <p className="flex items-center gap-1.5 text-sm font-bold text-slate-100">
+              <span>{getPoiTypeIcon(activePoi.type)}</span>
+              <span className="truncate">{getPoiTypeLabel(activePoi.type)}</span>
+            </p>
+            {activePoi.description ? (
+              <p className="mt-0.5 whitespace-pre-wrap break-words text-xs text-slate-300">
+                {activePoi.description}
+              </p>
+            ) : null}
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation()
+                onMarkActiveDone?.(activePoi.id)
+              }}
+              className="mt-2 w-full rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-bold text-white active:bg-emerald-500"
+            >
+              Done
+            </button>
+            {/* tail pointing down at the marker */}
+            <div className="absolute left-1/2 top-full h-3 w-3 -translate-x-1/2 -translate-y-1/2 rotate-45 border-b border-r border-slate-700 bg-slate-900/95" />
+          </div>
+        </div>
+      ) : null}
+
       {/* Driver: GPS accuracy — bottom-right */}
       {role === 'driver' && typeof currentLocation?.accuracy === 'number' ? (
         <div
@@ -619,8 +723,35 @@ export default function PoiMap({
         </div>
       ) : null}
 
+      {/* Controller: route-check mode — top hint + bottom action bar */}
+      {role !== 'driver' && routeSelectMode ? (
+        <>
+          <div className="pointer-events-none absolute left-1/2 top-3 z-[1000] -translate-x-1/2 rounded-full bg-amber-600/90 px-4 py-1.5 text-xs font-bold text-white shadow">
+            Tap POIs to select them for the route · {selectedRoutePois.length} selected
+          </div>
+          <div className="absolute bottom-3 left-1/2 z-[1000] flex -translate-x-1/2 items-center gap-2">
+            <button
+              type="button"
+              disabled={routeLinks.length === 0}
+              onClick={() => onOpenRoute?.(routeLinks)}
+              className="rounded-full bg-cyan-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg active:bg-cyan-700 disabled:opacity-40"
+            >
+              Open route ({selectedRoutePois.length} stops
+              {routeLinks.length > 1 ? ` · ${routeLinks.length} links` : ''})
+            </button>
+            <button
+              type="button"
+              onClick={onToggleRouteMode}
+              className="rounded-full border border-slate-600 bg-slate-900/90 px-4 py-2.5 text-sm font-bold text-slate-200 shadow hover:text-slate-100"
+            >
+              Cancel
+            </button>
+          </div>
+        </>
+      ) : null}
+
       {/* Controller: long-press hint — bottom-center */}
-      {role !== 'driver' && !placingApproach ? (
+      {role !== 'driver' && !placingApproach && !routeSelectMode ? (
         <div className="pointer-events-none absolute bottom-3 left-1/2 z-[1000] -translate-x-1/2 rounded-full bg-slate-900/80 px-3 py-1 text-xs text-slate-300">
           Long-press the map to drop a marker · long-press a marker to move it
         </div>

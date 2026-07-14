@@ -36,6 +36,41 @@ export function checkRouteToPoi(poi, driverLocation) {
   return true
 }
 
+// Google Maps' consumer directions URL only routes a limited number of stops
+// per link, so long routes are split into overlapping segments.
+export const MAX_STOPS_PER_LINK = 10
+
+// Build one Google Maps directions URL for an ordered list of {lat, lon} points:
+// origin = first, destination = last, the rest are waypoints in order.
+export function buildRouteLink(points) {
+  const origin = points[0]
+  const destination = points[points.length - 1]
+  const waypoints = points.slice(1, -1)
+  const params = new URLSearchParams({
+    api: '1',
+    origin: `${origin.lat},${origin.lon}`,
+    destination: `${destination.lat},${destination.lon}`,
+    travelmode: 'driving',
+  })
+  if (waypoints.length) {
+    params.set('waypoints', waypoints.map((p) => `${p.lat},${p.lon}`).join('|'))
+  }
+  return `https://www.google.com/maps/dir/?${params.toString()}`
+}
+
+// Split an ordered list of points into Google-Maps-sized route segments. Each
+// segment overlaps the previous one by a single stop so the links connect
+// end-to-start and together cover the whole route. Returns [] for < 2 points.
+export function buildRouteLinks(points) {
+  if (!Array.isArray(points) || points.length < 2) return []
+  const links = []
+  const step = MAX_STOPS_PER_LINK - 1
+  for (let start = 0; start < points.length - 1; start += step) {
+    links.push(buildRouteLink(points.slice(start, start + MAX_STOPS_PER_LINK)))
+  }
+  return links
+}
+
 export function isMobileDevice() {
   if (typeof navigator === 'undefined') {
     return false

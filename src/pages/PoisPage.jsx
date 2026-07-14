@@ -69,6 +69,10 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
   // pending" target so the highlight follows an out-of-order Drive tap. State
   // resets naturally on a drive switch because App keys this page by pairKey.
   const [activeTargetId, setActiveTargetId] = useState(null)
+  // Controller route-check mode: tap POIs on the map to select a subset, then
+  // open their Google Maps route (POI order: first = origin, last = destination).
+  const [routeSelectMode, setRouteSelectMode] = useState(false)
+  const [selectedRouteIds, setSelectedRouteIds] = useState([])
 
   // Keep screen awake while driving so GPS keeps broadcasting
   useWakeLock(role === 'driver')
@@ -110,8 +114,26 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
     return ''
   }, [pois, editing])
 
+  function handleToggleRouteMode() {
+    setRouteSelectMode((v) => !v)
+    setSelectedRouteIds([])
+    setEditing(null)
+  }
+
+  function handleToggleRouteSelect(id) {
+    setSelectedRouteIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    )
+  }
+
+  function handleOpenRoute(links) {
+    links.forEach((link) => window.open(link, '_blank', 'noopener'))
+    setRouteSelectMode(false)
+    setSelectedRouteIds([])
+  }
+
   function handleLongPress(lat, lon) {
-    if (role === 'driver') return
+    if (role === 'driver' || routeSelectMode) return
     if (placingApproach && editing) {
       setEditing((prev) => ({ ...prev, approach: { lat, lon } }))
       setPlacingApproach(false)
@@ -144,7 +166,17 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
     return navigateToPoi(poi)
   }
 
+  // Mark the active-POI bubble's POI done directly from the map. Once it's
+  // done the nearestId memo advances to the next pending POI on its own.
+  function handleMarkActiveDone(id) {
+    editPoi(id, { done: true, dropped: false })
+  }
+
   function handleMarkerClick(id) {
+    if (routeSelectMode) {
+      handleToggleRouteSelect(id)
+      return
+    }
     const poi = pois.find((item) => item.id === id)
     if (poi) {
       setEditing(draftFromPoi(poi, false))
@@ -196,6 +228,7 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
         role={role}
         onLongPress={handleLongPress}
         onMarkerClick={handleMarkerClick}
+        onMarkActiveDone={handleMarkActiveDone}
         onMovePoi={(id, lat, lon) => editPoi(id, { lat, lon })}
         onMoveApproach={(id, lat, lon) => editPoi(id, { approach: { lat, lon } })}
         onClearAll={() => setClearConfirmOpen(true)}
@@ -203,6 +236,10 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
         onOpenReorder={() => setReorderOpen(true)}
         placingApproach={placingApproach}
         onCancelPlacement={() => setPlacingApproach(false)}
+        routeSelectMode={routeSelectMode}
+        selectedRouteIds={selectedRouteIds}
+        onToggleRouteMode={handleToggleRouteMode}
+        onOpenRoute={handleOpenRoute}
         doneCount={doneCount}
         totalCount={pois.length}
         gpsInterval={gpsInterval}

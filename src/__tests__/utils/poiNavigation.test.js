@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { buildGoogleMapsNavLink, isMobileDevice, navigateToPoi } from '../../utils/poiNavigation.js'
+import {
+  buildGoogleMapsNavLink,
+  buildRouteLink,
+  buildRouteLinks,
+  isMobileDevice,
+  navigateToPoi,
+} from '../../utils/poiNavigation.js'
 
 const DEST = { lat: 47.4979, lon: 19.0402 }
 const WAYPOINT = { lat: 47.5, lon: 19.1 }
@@ -30,6 +36,49 @@ describe('buildGoogleMapsNavLink', () => {
   it('starts with the Google Maps dir URL', () => {
     const url = buildGoogleMapsNavLink(DEST)
     expect(url).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\//)
+  })
+})
+
+describe('buildRouteLink', () => {
+  const points = [
+    { lat: 47.1, lon: 19.1 },
+    { lat: 47.2, lon: 19.2 },
+    { lat: 47.3, lon: 19.3 },
+  ]
+
+  it('uses first as origin, last as destination, middle as waypoints', () => {
+    const url = buildRouteLink(points)
+    expect(url).toContain('origin=47.1%2C19.1')
+    expect(url).toContain('destination=47.3%2C19.3')
+    expect(url).toContain('waypoints=47.2%2C19.2')
+  })
+
+  it('omits waypoints for a two-point route', () => {
+    const url = buildRouteLink([points[0], points[2]])
+    expect(url).toContain('origin=47.1%2C19.1')
+    expect(url).toContain('destination=47.3%2C19.3')
+    expect(url).not.toContain('waypoints')
+  })
+})
+
+describe('buildRouteLinks', () => {
+  const makePoints = (n) =>
+    Array.from({ length: n }, (_, i) => ({ lat: 47 + i / 100, lon: 19 + i / 100 }))
+
+  it('returns [] for fewer than two points', () => {
+    expect(buildRouteLinks([])).toEqual([])
+    expect(buildRouteLinks([{ lat: 47, lon: 19 }])).toEqual([])
+  })
+
+  it('produces a single link when within the stop limit', () => {
+    expect(buildRouteLinks(makePoints(10))).toHaveLength(1)
+  })
+
+  it('splits into overlapping segments beyond the stop limit', () => {
+    // 20 stops, segments of 10 overlapping by one → 3 links
+    expect(buildRouteLinks(makePoints(20))).toHaveLength(3)
+    // 15 stops → 2 links
+    expect(buildRouteLinks(makePoints(15))).toHaveLength(2)
   })
 })
 
