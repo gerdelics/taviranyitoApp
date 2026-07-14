@@ -104,6 +104,27 @@ export default function LoginPage({ onLogin }) {
                   autoComplete="current-password"
                 />
               </div>
+              <div>
+                <p className="mb-1.5 text-xs text-slate-500">
+                  Available users <span className="text-slate-600">(password: qwe123)</span>
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {ALL_USERNAMES.map((u) => (
+                    <button
+                      key={u}
+                      type="button"
+                      onClick={() => setUsername(u)}
+                      className={`rounded-lg border px-2.5 py-1 font-mono text-xs transition-colors ${
+                        username === u
+                          ? 'border-cyan-500 bg-cyan-950 text-cyan-300'
+                          : 'border-slate-600 bg-slate-800 text-slate-300 hover:border-cyan-600 hover:text-cyan-200'
+                      }`}
+                    >
+                      {u}
+                    </button>
+                  ))}
+                </div>
+              </div>
               {error && <p className="text-sm text-red-400">{error}</p>}
               <button
                 type="submit"

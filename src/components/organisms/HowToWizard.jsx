@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ALL_USERNAMES } from '../../config/users'
 
 const STEPS = [
   {
@@ -33,26 +34,28 @@ const STEPS = [
     content: (
       <div className="flex flex-col gap-3">
         <p className="text-sm text-slate-400">
-          The app uses paired logins. Both parties need to sign in with their own account.
+          Sign in with your username. Every account shares the same password:{' '}
+          <span className="font-mono text-cyan-300">qwe123</span>.
         </p>
         <div className="rounded-xl border border-slate-600 bg-slate-800 px-4 py-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Test accounts
+            Available users
           </p>
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between rounded-lg bg-slate-700/50 px-3 py-2">
-              <span className="text-sm font-semibold text-slate-200">🚗 Driver</span>
-              <span className="font-mono text-sm text-cyan-300">sofor / qwe123</span>
-            </div>
-            <div className="flex items-center justify-between rounded-lg bg-slate-700/50 px-3 py-2">
-              <span className="text-sm font-semibold text-slate-200">🗺️ Controller</span>
-              <span className="font-mono text-sm text-orange-300">iranyito / qwe123</span>
-            </div>
+          <div className="flex flex-wrap gap-2">
+            {ALL_USERNAMES.map((u) => (
+              <span
+                key={u}
+                className="rounded-lg bg-slate-700/50 px-3 py-1 font-mono text-sm text-slate-200"
+              >
+                {u}
+              </span>
+            ))}
           </div>
         </div>
         <p className="text-xs text-slate-500">
-          💡 Tip: sign in on two devices at the same time – on one as sofor (Driver), on the other
-          as iranyito (Controller) – and see the real-time collaboration in action!
+          💡 After signing in you pick a role – 🚗 Driver or 🗺️ Controller – and then choose or
+          create a drive. Sign in on two devices (one as Driver, one as Controller) to see the
+          real-time collaboration in action!
         </p>
       </div>
     ),
