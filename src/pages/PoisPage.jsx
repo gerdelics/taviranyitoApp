@@ -4,7 +4,7 @@ import { useFirebasePois } from '../hooks/useFirebasePois'
 import { useDriverPosition } from '../hooks/useDriverPosition'
 import { useWakeLock } from '../hooks/useWakeLock'
 import { AddMarkerDialog, ConfirmDialog, PoiActionsDialog, PoiMap, PoiReorderDialog, Toast } from '../components'
-import { isMobileDevice, navigateToPoi } from '../utils/poiNavigation'
+import { isMobileDevice, navigateToPoi, navigateToPoiWithNext } from '../utils/poiNavigation'
 import { playBeep, playHaptic } from '../utils/audio'
 
 const DEFAULT_ZOOM = 14
@@ -170,6 +170,20 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
     return navigateToPoi(poi)
   }
 
+  // Next pending POI after `poi` in route order (pending = not done, not dropped).
+  function getNextPendingPoi(poi) {
+    const pending = pois.filter((p) => !p.done && !p.dropped)
+    const idx = pending.findIndex((p) => p.id === poi.id)
+    return idx >= 0 ? (pending[idx + 1] ?? null) : null
+  }
+
+  // Driver pressed "Drive +next": route through this POI and continue to the
+  // next pending one so they see where to go next on arrival.
+  function handleDriveWithNext(poi) {
+    setActiveTargetId(poi.id)
+    return navigateToPoiWithNext(poi, getNextPendingPoi(poi))
+  }
+
   // Mark the active-POI bubble's POI done directly from the map. Once it's
   // done the nearestId memo advances to the next pending POI on its own.
   function handleMarkActiveDone(id) {
@@ -295,6 +309,8 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
         isMobile={isMobile}
         onChange={handleDraftChange}
         onNavigate={role === 'driver' ? handleDrive : navigateToPoi}
+        onNavigateNext={role === 'driver' ? handleDriveWithNext : undefined}
+        nextPoi={role === 'driver' && editing ? getNextPendingPoi(editing) : null}
         onPlaceApproach={() => setPlacingApproach(true)}
         onSave={handleSave}
         onCancel={handleCancel}

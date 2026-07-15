@@ -1,17 +1,32 @@
 // Google Maps directions helpers for POI navigation. The Maps "dir" URL
-// supports a waypoint, so we can route current location -> approach point -> marker.
+// supports waypoints, so we can route current location -> approach point -> marker.
 // Omitting `origin` makes Google Maps use the device's current location.
+//
+// On Android we prefer the native `google.navigation:` intent instead of the web
+// "dir" URL: it is the "navigation" intent, so opening it REPLACES any running
+// navigation with a fresh one rather than adding the target as a stop (which is
+// how Android Auto treats the web URL). iOS/desktop keep the web URL because it
+// is the only scheme that supports waypoints on those platforms.
 
 function hasCoords(point) {
   return Boolean(point) && Number.isFinite(point.lat) && Number.isFinite(point.lon)
 }
 
-// Build a Google Maps directions link to `destination`, optionally routing
-// through `waypoint` (the approach point) first. The start point is
-// left unset so Google Maps always uses the device's current position; the
-// waypoint is the second stop and the destination is the final target.
-// Pass `origin` to set an explicit start point (e.g. the driver's position).
-export function buildGoogleMapsNavLink(destination, waypoint, origin) {
+// 'android' | 'ios' | null (desktop / unknown).
+export function getMobilePlatform() {
+  if (typeof navigator === 'undefined') return null
+  const ua = navigator.userAgent
+  if (/Android/i.test(ua)) return 'android'
+  if (/iPhone|iPad|iPod/i.test(ua)) return 'ios'
+  return null
+}
+
+// Build a Google Maps web directions link to `destination`, optionally routing
+// through `waypoints` (approach points and/or intermediate POIs) in order. The
+// start point is left unset so Google Maps uses the device's current position;
+// pass `origin` to set an explicit start point (e.g. the driver's position).
+export function buildWebDirLink(destination, waypoints = [], origin) {
+  const stops = waypoints.filter(hasCoords)
   const params = new URLSearchParams({
     api: '1',
     destination: `${destination.lat},${destination.lon}`,
@@ -20,10 +35,50 @@ export function buildGoogleMapsNavLink(destination, waypoint, origin) {
   if (hasCoords(origin)) {
     params.set('origin', `${origin.lat},${origin.lon}`)
   }
-  if (hasCoords(waypoint)) {
-    params.set('waypoints', `${waypoint.lat},${waypoint.lon}`)
+  if (stops.length) {
+    params.set('waypoints', stops.map((p) => `${p.lat},${p.lon}`).join('|'))
   }
   return `https://www.google.com/maps/dir/?${params.toString()}`
+}
+
+// Backwards-compatible single-waypoint wrapper around buildWebDirLink.
+export function buildGoogleMapsNavLink(destination, waypoint, origin) {
+  return buildWebDirLink(destination, waypoint ? [waypoint] : [], origin)
+}
+
+// Build a native Android `google.navigation:` intent URI. `q` is the final
+// destination; `waypoints` are pipe-separated intermediate stops. This intent
+// starts a fresh navigation (replacing any running route) instead of adding a stop.
+export function buildAndroidNavUri(destination, waypoints = []) {
+  const stops = waypoints.filter(hasCoords)
+  let uri = `google.navigation:q=${destination.lat},${destination.lon}&mode=d`
+  if (stops.length) {
+    uri += `&waypoints=${stops.map((p) => `${p.lat},${p.lon}`).join('|')}`
+  }
+  return uri
+}
+
+// Open turn-by-turn navigation to `destination` routing through `waypoints`.
+// Android: native intent (fresh navigation). iOS: web URL (supports waypoints,
+// opens the Maps app). Desktop: copy the web link to the clipboard.
+// Returns 'opened' on mobile, or true/false for the clipboard result on desktop.
+async function openNavigation(destination, waypoints) {
+  const platform = getMobilePlatform()
+  if (platform === 'android') {
+    window.location.href = buildAndroidNavUri(destination, waypoints)
+    return 'opened'
+  }
+  const link = buildWebDirLink(destination, waypoints)
+  if (platform === 'ios') {
+    window.location.href = link
+    return 'opened'
+  }
+  try {
+    await navigator.clipboard.writeText(link)
+    return true
+  } catch {
+    return false
+  }
 }
 
 // Open a route preview from the driver's last known position to the POI.
@@ -72,30 +127,22 @@ export function buildRouteLinks(points) {
 }
 
 export function isMobileDevice() {
-  if (typeof navigator === 'undefined') {
-    return false
-  }
-  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+  return getMobilePlatform() !== null
 }
 
-// On mobile we hand the link to the OS so Google Maps opens and starts
-// navigating. On desktop we copy the link to the clipboard instead. Returns
-// 'opened' on mobile, true/false for the clipboard result on desktop.
-//
-// The marker is the destination; if the POI has an approach point it becomes a
-// waypoint, so the route is current location -> approach point -> marker.
+// Navigate to a single POI. The marker is the destination; if the POI has an
+// approach point it becomes a waypoint, so the route is
+// current location -> approach point -> marker.
 export async function navigateToPoi(poi) {
-  const link = buildGoogleMapsNavLink(poi, poi?.approach)
+  return openNavigation(poi, [poi?.approach])
+}
 
-  if (isMobileDevice()) {
-    window.location.href = link
-    return 'opened'
-  }
-
-  try {
-    await navigator.clipboard.writeText(link)
-    return true
-  } catch {
-    return false
-  }
+// "Drive + next": navigate through the current POI and continue to the next one,
+// which becomes the final destination so the driver sees where to go next as
+// soon as they reach the current POI. Route:
+// current location -> [current approach] -> current POI -> [next approach] -> next POI.
+// Falls back to a plain drive to the current POI when there is no next POI.
+export async function navigateToPoiWithNext(currentPoi, nextPoi) {
+  if (!nextPoi) return navigateToPoi(currentPoi)
+  return openNavigation(nextPoi, [currentPoi?.approach, currentPoi, nextPoi?.approach])
 }

@@ -13,6 +13,8 @@ export default function PoiActionsDialog({
   isMobile = false,
   onChange,
   onNavigate,
+  onNavigateNext,
+  nextPoi,
   onPlaceApproach,
   onSave,
   onCancel,
@@ -35,6 +37,14 @@ export default function PoiActionsDialog({
 
   async function handleNavigate() {
     const result = await onNavigate(draft)
+    if (result === 'opened') {
+      return
+    }
+    setCopyState(result === true ? 'copied' : 'error')
+  }
+
+  async function handleNavigateNext() {
+    const result = await onNavigateNext(draft)
     if (result === 'opened') {
       return
     }
@@ -97,6 +107,14 @@ export default function PoiActionsDialog({
               className="min-h-[3.5rem] flex-1 rounded-xl bg-cyan-600 text-sm font-bold text-white active:bg-cyan-700"
             >
               Drive
+            </button>
+            <button
+              type="button"
+              onClick={handleNavigateNext}
+              disabled={!nextPoi}
+              className="min-h-[3.5rem] flex-1 rounded-xl bg-cyan-700 text-sm font-bold text-white active:bg-cyan-800 disabled:opacity-40 disabled:active:bg-cyan-700"
+            >
+              Drive +next
             </button>
             <button
               type="button"
