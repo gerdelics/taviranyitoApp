@@ -146,3 +146,41 @@ export async function navigateToPoiWithNext(currentPoi, nextPoi) {
   if (!nextPoi) return navigateToPoi(currentPoi)
   return openNavigation(nextPoi, [currentPoi?.approach, currentPoi, nextPoi?.approach])
 }
+
+// Batch drive: pick as many upcoming POIs as fit in a single Google route,
+// counting each approach point as an extra stop. We greedily pack POIs (in
+// order) until adding the next one would exceed `maxStops` total stops, always
+// keeping at least the first POI. `maxStops` defaults to the 10-stop Maps limit.
+export function selectBatchPois(pois, maxStops = MAX_STOPS_PER_LINK) {
+  const result = []
+  let stops = 0
+  for (const poi of pois) {
+    const unit = 1 + (hasCoords(poi?.approach) ? 1 : 0)
+    if (result.length > 0 && stops + unit > maxStops) break
+    result.push(poi)
+    stops += unit
+    if (stops >= maxStops) break
+  }
+  return result
+}
+
+// Flatten POIs into ordered route stops: each POI's approach point (if any)
+// followed by the POI itself.
+export function poisToStops(pois) {
+  const stops = []
+  for (const poi of pois) {
+    if (hasCoords(poi?.approach)) stops.push(poi.approach)
+    stops.push(poi)
+  }
+  return stops.filter(hasCoords)
+}
+
+// Open one chained route through the given POIs: device location -> stop1 ->
+// ... -> last stop (final destination). Returns false when there are no stops.
+export async function navigateBatch(pois) {
+  const stops = poisToStops(pois)
+  if (stops.length === 0) return false
+  const destination = stops[stops.length - 1]
+  const waypoints = stops.slice(0, -1)
+  return openNavigation(destination, waypoints)
+}

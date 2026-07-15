@@ -4,10 +4,14 @@ import { useFirebasePois } from '../hooks/useFirebasePois'
 import { useDriverPosition } from '../hooks/useDriverPosition'
 import { useWakeLock } from '../hooks/useWakeLock'
 import { AddMarkerDialog, ConfirmDialog, PoiActionsDialog, PoiMap, PoiReorderDialog, Toast } from '../components'
-import { isMobileDevice, navigateToPoi, navigateToPoiWithNext } from '../utils/poiNavigation'
+import { isMobileDevice, navigateToPoi, navigateToPoiWithNext, navigateBatch, selectBatchPois } from '../utils/poiNavigation'
+import { useProximityAutoDone } from '../hooks/useProximityAutoDone'
 import { playBeep, playHaptic } from '../utils/audio'
 
 const DEFAULT_ZOOM = 14
+// In batch mode only the next couple of POIs get an info bubble, to keep the
+// map light and the focus on what's immediately ahead.
+const BATCH_BUBBLE_COUNT = 2
 
 function draftFromPoi(poi, isNew) {
   return {
@@ -73,6 +77,26 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
   // open their Google Maps route (POI order: first = origin, last = destination).
   const [routeSelectMode, setRouteSelectMode] = useState(false)
   const [selectedRouteIds, setSelectedRouteIds] = useState([])
+  // POI ids from the most recently launched batch drive, highlighted blue so the
+  // driver sees how many of that route are still left.
+  const [lastBatchIds, setLastBatchIds] = useState([])
+  // Driver bottom action: 'single' shows the Next POI button, 'batch' shows the
+  // Batch Drive button (a chained route through the next several POIs).
+  const [driveMode, setDriveMode] = useState(
+    () => (localStorage.getItem('driveMode') === 'batch' ? 'batch' : 'single'),
+  )
+  const handleToggleDriveMode = useCallback((mode) => {
+    setDriveMode(mode)
+    localStorage.setItem('driveMode', mode)
+  }, [])
+  // Whether proximity auto-done (30 m → 10 s countdown) is active.
+  const [autoDoneEnabled, setAutoDoneEnabled] = useState(
+    () => localStorage.getItem('autoDone') !== 'off',
+  )
+  const handleToggleAutoDone = useCallback((enabled) => {
+    setAutoDoneEnabled(enabled)
+    localStorage.setItem('autoDone', enabled ? 'on' : 'off')
+  }, [])
 
   // Keep screen awake while driving so GPS keeps broadcasting
   useWakeLock(role === 'driver')
@@ -95,6 +119,47 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
     }
     return pois.find(isPending)?.id ?? null
   }, [pois, role, activeTargetId])
+
+  const activePoi = useMemo(
+    () => (nearestId ? pois.find((p) => p.id === nearestId) ?? null : null),
+    [pois, nearestId],
+  )
+
+  // Upcoming pending POIs (route order) and the batch that fits one Google route.
+  const pendingPois = useMemo(
+    () => pois.filter((p) => !p.done && !p.dropped),
+    [pois],
+  )
+  const batchPois = useMemo(
+    () => (role === 'driver' && driveMode === 'batch' ? selectBatchPois(pendingPois) : []),
+    [role, driveMode, pendingPois],
+  )
+
+  // Blue-highlighted ids: only in batch mode, only the last launched route.
+  const batchDriveIds = useMemo(
+    () => (driveMode === 'batch' ? lastBatchIds : []),
+    [driveMode, lastBatchIds],
+  )
+
+  // POIs that get an info bubble + proximity auto-done: the next two upcoming
+  // POIs in batch mode, otherwise just the single active POI. As each is done
+  // the list shifts forward on its own.
+  const focusPois = useMemo(() => {
+    if (role !== 'driver') return []
+    if (driveMode === 'batch') return batchPois.slice(0, BATCH_BUBBLE_COUNT)
+    return activePoi ? [activePoi] : []
+  }, [role, driveMode, batchPois, activePoi])
+
+  const handleAutoDone = useCallback(
+    (id) => editPoi(id, { done: true, dropped: false }),
+    [editPoi],
+  )
+  const { countdownPoi, countdown, cancel: cancelAutoDone } = useProximityAutoDone(
+    role === 'driver' ? location : null,
+    focusPois,
+    handleAutoDone,
+    autoDoneEnabled,
+  )
 
   const doneCount = useMemo(() => pois.filter((p) => p.done).length, [pois])
   const droppedCount = useMemo(
@@ -184,6 +249,16 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
     return navigateToPoiWithNext(poi, getNextPendingPoi(poi))
   }
 
+  // Driver pressed "Batch Drive": open one chained route through the batch POIs.
+  async function handleBatchDrive() {
+    if (batchPois.length === 0) return
+    setActiveTargetId(batchPois[0].id)
+    setLastBatchIds(batchPois.map((p) => p.id))
+    const result = await navigateBatch(batchPois)
+    if (result === true) addToast('Route link copied')
+    else if (result === false) addToast('Could not open route')
+  }
+
   // Mark the active-POI bubble's POI done directly from the map. Once it's
   // done the nearestId memo advances to the next pending POI on its own.
   function handleMarkActiveDone(id) {
@@ -240,6 +315,7 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
         onLogout={onLogout}
         pois={pois}
         nearestId={nearestId}
+        batchDriveIds={batchDriveIds}
         currentLocation={role === 'driver' ? location : null}
         driverLocation={driverLocation}
         defaultZoom={DEFAULT_ZOOM}
@@ -247,6 +323,16 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
         onLongPress={handleLongPress}
         onMarkerClick={handleMarkerClick}
         onMarkActiveDone={handleMarkActiveDone}
+        bubblePois={focusPois}
+        driveMode={driveMode}
+        onToggleDriveMode={handleToggleDriveMode}
+        batchCount={batchPois.length}
+        onBatchDrive={handleBatchDrive}
+        autoDoneEnabled={autoDoneEnabled}
+        onToggleAutoDone={handleToggleAutoDone}
+        autoDonePoi={countdownPoi}
+        autoDoneSeconds={countdown?.secondsLeft ?? null}
+        onCancelAutoDone={cancelAutoDone}
         onMovePoi={(id, lat, lon) => editPoi(id, { lat, lon })}
         onMoveApproach={(id, lat, lon) => editPoi(id, { approach: { lat, lon } })}
         onClearAll={() => setClearConfirmOpen(true)}

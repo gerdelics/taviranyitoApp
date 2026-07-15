@@ -7,8 +7,11 @@ import {
   buildWebDirLink,
   getMobilePlatform,
   isMobileDevice,
+  navigateBatch,
   navigateToPoi,
   navigateToPoiWithNext,
+  poisToStops,
+  selectBatchPois,
 } from '../../utils/poiNavigation.js'
 
 const DEST = { lat: 47.4979, lon: 19.0402 }
@@ -91,6 +94,75 @@ describe('getMobilePlatform', () => {
   it('returns null on desktop', () => {
     setUA('Mozilla/5.0 (Windows NT 10.0; Win64; x64)')
     expect(getMobilePlatform()).toBe(null)
+  })
+})
+
+describe('selectBatchPois', () => {
+  const noApproach = (n) =>
+    Array.from({ length: n }, (_, i) => ({ id: `p${i}`, lat: 47 + i / 100, lon: 19 }))
+  const withApproach = (n) =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `p${i}`,
+      lat: 47 + i / 100,
+      lon: 19,
+      approach: { lat: 47 + i / 100, lon: 18.99 },
+    }))
+
+  it('packs up to 10 stops when POIs have no approach', () => {
+    expect(selectBatchPois(noApproach(12))).toHaveLength(10)
+  })
+
+  it('counts each approach as an extra stop', () => {
+    // each POI = 2 stops, so 5 POIs fill the 10-stop budget
+    expect(selectBatchPois(withApproach(8))).toHaveLength(5)
+  })
+
+  it('always keeps at least the first POI', () => {
+    expect(selectBatchPois(withApproach(1))).toHaveLength(1)
+    expect(selectBatchPois([])).toHaveLength(0)
+  })
+
+  it('respects a custom max', () => {
+    expect(selectBatchPois(noApproach(10), 3)).toHaveLength(3)
+  })
+})
+
+describe('poisToStops', () => {
+  it('flattens each POI into [approach, poi] in order, dropping invalid', () => {
+    const stops = poisToStops([
+      { lat: 47.1, lon: 19.1, approach: { lat: 47.0, lon: 19.0 } },
+      { lat: 47.2, lon: 19.2, approach: null },
+    ])
+    expect(stops).toEqual([
+      { lat: 47.0, lon: 19.0 },
+      { lat: 47.1, lon: 19.1, approach: { lat: 47.0, lon: 19.0 } },
+      { lat: 47.2, lon: 19.2, approach: null },
+    ])
+  })
+})
+
+describe('navigateBatch', () => {
+  beforeEach(() => {
+    Object.defineProperty(navigator, 'userAgent', {
+      value: 'Mozilla/5.0 (Windows NT 10.0)',
+      configurable: true,
+    })
+  })
+  afterEach(() => vi.restoreAllMocks())
+
+  it('returns false for an empty batch', async () => {
+    expect(await navigateBatch([])).toBe(false)
+  })
+
+  it('routes to the last POI as destination with the rest as waypoints', async () => {
+    navigator.clipboard = { writeText: vi.fn().mockResolvedValue(undefined) }
+    await navigateBatch([
+      { lat: 47.1, lon: 19.1, approach: null },
+      { lat: 47.2, lon: 19.2, approach: null },
+    ])
+    const link = navigator.clipboard.writeText.mock.calls[0][0]
+    expect(link).toContain('destination=47.2%2C19.2')
+    expect(link).toContain('waypoints=47.1%2C19.1')
   })
 })
 
