@@ -57,6 +57,9 @@ export function useFirebasePois(pairKey, { onNewPoi } = {}) {
         published: details.published ?? false,
         order: poisRef.current.length,
       }
+      // Driver-dropped POIs (magenta hearts) are flagged so they render
+      // differently and stay out of the controller's numbered route.
+      if (details.driverPoi) poiData.driverPoi = true
       if (details.approach != null) poiData.approach = details.approach
       set(dbRef(db, `taviranyito/drives/${pairKey}/pois/${poiData.id}`), poiData)
       return { ...poiData, approach: null }

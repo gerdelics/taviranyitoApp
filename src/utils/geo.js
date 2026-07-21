@@ -27,3 +27,45 @@ export function haversineKm(pointA, pointB) {
 
   return 2 * earthRadiusKm * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
+
+// Shortest distance in kilometres from `point` to the segment `a`→`b`. Uses a
+// local equirectangular projection (origin at `point`), which is accurate at the
+// tens-of-metres scale we use for proximity detection. This lets us catch a
+// drive-by even when no single GPS fix lands inside the radius: we test the whole
+// travelled segment, not just the endpoints. Falls back to the point-to-`b`
+// distance when `a` is missing (e.g. the very first fix).
+export function pointToSegmentKm(point, a, b) {
+  const pLat = toNumber(point?.lat)
+  const pLon = toNumber(point?.lon)
+  const bLat = toNumber(b?.lat)
+  const bLon = toNumber(b?.lon)
+  if (pLat === null || pLon === null || bLat === null || bLon === null) {
+    return 0
+  }
+  const aLat = toNumber(a?.lat)
+  const aLon = toNumber(a?.lon)
+  if (aLat === null || aLon === null) {
+    return haversineKm(point, b)
+  }
+
+  const earthRadiusKm = 6371
+  const cosLat = Math.cos(toRad(pLat))
+  // Project to local km offsets from `point` (x = east, y = north).
+  const project = (lat, lon) => ({
+    x: toRad(lon - pLon) * cosLat * earthRadiusKm,
+    y: toRad(lat - pLat) * earthRadiusKm,
+  })
+  const pa = project(aLat, aLon)
+  const pb = project(bLat, bLon)
+  const dx = pb.x - pa.x
+  const dy = pb.y - pa.y
+  const lenSq = dx * dx + dy * dy
+  // `point` is the origin, so project (0,0) onto the segment.
+  let t = 0
+  if (lenSq > 0) {
+    t = Math.max(0, Math.min(1, -(pa.x * dx + pa.y * dy) / lenSq))
+  }
+  const cx = pa.x + t * dx
+  const cy = pa.y + t * dy
+  return Math.sqrt(cx * cx + cy * cy)
+}

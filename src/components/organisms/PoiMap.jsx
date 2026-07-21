@@ -12,6 +12,7 @@ const COLOR_DONE = '#22c55e'
 const COLOR_NEAREST = '#0ea5e9'
 const COLOR_DEFAULT = '#ef4444'
 const COLOR_DROPPED = '#64748b'
+const COLOR_DRIVER = '#ec4899'
 
 const LONG_PRESS_MS = 500
 const MOVE_CANCEL_PX = 10
@@ -38,6 +39,17 @@ function buildMarkerIcon(label, color, selected = false) {
     ? 'box-shadow:0 0 0 3px #f59e0b,0 1px 3px rgba(0,0,0,.5)'
     : 'box-shadow:0 1px 3px rgba(0,0,0,.5)'
   const html = `<div style="width:28px;height:28px;border-radius:9999px;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;border:2px solid #fff;${shadow}">${label}</div>`
+  return L.divIcon({ html, className: '', iconSize: [28, 28], iconAnchor: [14, 14] })
+}
+
+// Driver-dropped POI: a magenta heart so it stands out from the numbered route
+// markers. Done/skipped states still recolor it to stay consistent.
+function buildDriverMarkerIcon(poi, selected = false) {
+  const color = poi.done ? COLOR_DONE : poi.dropped ? COLOR_DROPPED : COLOR_DRIVER
+  const shadow = selected
+    ? 'box-shadow:0 0 0 3px #f59e0b,0 1px 3px rgba(0,0,0,.5)'
+    : 'box-shadow:0 1px 3px rgba(0,0,0,.5)'
+  const html = `<div style="width:28px;height:28px;border-radius:9999px;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1;border:2px solid #fff;${shadow}">&#9829;</div>`
   return L.divIcon({ html, className: '', iconSize: [28, 28], iconAnchor: [14, 14] })
 }
 
@@ -389,21 +401,24 @@ export default function PoiMap({
         onMoveApproachRef.current?.(id, lat, lon),
       )
 
-      let label = '-'
-      if (!poi.done && !poi.dropped) {
-        sequence += 1
-        label = String(sequence)
-      } else if (poi.dropped && !poi.done) {
-        label = '×'
+      const isSelected = routeSelectMode && selectedRouteIds.includes(poi.id)
+
+      let icon
+      if (poi.driverPoi) {
+        // Driver POIs stay out of the numbered sequence and render as hearts.
+        icon = buildDriverMarkerIcon(poi, isSelected)
+      } else {
+        let label = '-'
+        if (!poi.done && !poi.dropped) {
+          sequence += 1
+          label = String(sequence)
+        } else if (poi.dropped && !poi.done) {
+          label = '×'
+        }
+        icon = buildMarkerIcon(label, poiColor(poi, nearestId, batchDriveIdSet), isSelected)
       }
 
-      const marker = L.marker([poi.lat, poi.lon], {
-        icon: buildMarkerIcon(
-          label,
-          poiColor(poi, nearestId, batchDriveIdSet),
-          routeSelectMode && selectedRouteIds.includes(poi.id),
-        ),
-      }).addTo(layer)
+      const marker = L.marker([poi.lat, poi.lon], { icon }).addTo(layer)
 
       const clickGuard = { dragged: false }
       marker.on('click', () => {

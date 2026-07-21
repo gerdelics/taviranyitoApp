@@ -1,36 +1,47 @@
 import { useEffect, useRef, useState } from 'react'
-import { haversineKm } from '../utils/geo'
+import { pointToSegmentKm } from '../utils/geo'
 
-// When the driver comes within 30 m of a watched POI we start a 10-second
+// When the driver passes within 30 m of a watched POI we start a 10-second
 // countdown before marking it done automatically. The driver can cancel it,
 // which suppresses that POI so the countdown does not immediately restart while
 // still nearby. Only one countdown runs at a time (POIs are passed one by one).
+//
+// Detection is segment-based: we measure the distance from the POI to the line
+// the driver travelled between the previous and current GPS fix, not just to the
+// current point. At speed (or with a slow GPS interval) a single fix can skip
+// over the 30 m radius entirely; testing the travelled segment catches the
+// drive-by anyway.
 const THRESHOLD_KM = 0.03 // 30 m
 const COUNTDOWN_SECONDS = 10
 
 export function useProximityAutoDone(location, pois, onAutoDone, enabled = true) {
   const [countdown, setCountdown] = useState(null) // { id, secondsLeft }
   const suppressedRef = useRef(new Set())
+  const prevLocationRef = useRef(null)
   const onAutoDoneRef = useRef(onAutoDone)
   useEffect(() => {
     onAutoDoneRef.current = onAutoDone
   })
 
-  // Start a countdown when the driver enters 30 m of an eligible POI and none is
-  // already running. When disabled, clear any running countdown.
+  // Start a countdown when the driver's travelled segment passes within 30 m of
+  // an eligible POI and none is already running. When disabled, clear any
+  // running countdown.
   useEffect(() => {
+    const validNow =
+      location && Number.isFinite(location.lat) && Number.isFinite(location.lon)
+    const prev = prevLocationRef.current
+    if (validNow) prevLocationRef.current = location
+
     setCountdown((current) => {
       if (!enabled) return null
-      if (!location || !Number.isFinite(location.lat) || !Number.isFinite(location.lon)) {
-        return current
-      }
+      if (!validNow) return current
       if (current) return current
       const near = pois.find(
         (p) =>
           !p.done &&
           !p.dropped &&
           !suppressedRef.current.has(p.id) &&
-          haversineKm(location, p) <= THRESHOLD_KM,
+          pointToSegmentKm(p, prev, location) <= THRESHOLD_KM,
       )
       return near ? { id: near.id, secondsLeft: COUNTDOWN_SECONDS } : null
     })

@@ -3,7 +3,7 @@ import { useGeolocation } from '../hooks/useGeolocation'
 import { useFirebasePois } from '../hooks/useFirebasePois'
 import { useDriverPosition } from '../hooks/useDriverPosition'
 import { useWakeLock } from '../hooks/useWakeLock'
-import { AddMarkerDialog, ConfirmDialog, PoiActionsDialog, PoiMap, PoiReorderDialog, Toast } from '../components'
+import { AddMarkerDialog, ConfirmDialog, DriverPoiDialog, PoiActionsDialog, PoiMap, PoiReorderDialog, Toast } from '../components'
 import { isMobileDevice, navigateToPoi, navigateToPoiWithNext, navigateBatch, selectBatchPois } from '../utils/poiNavigation'
 import { useProximityAutoDone } from '../hooks/useProximityAutoDone'
 import { playBeep, playHaptic } from '../utils/audio'
@@ -24,6 +24,7 @@ function draftFromPoi(poi, isNew) {
     approach: poi.approach ?? null,
     done: poi.done,
     dropped: poi.dropped ?? false,
+    driverPoi: poi.driverPoi ?? false,
   }
 }
 
@@ -110,10 +111,11 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
 
   const isMobile = useMemo(() => isMobileDevice(), [])
 
-  // Pending = still an active target (neither done nor skipped).
+  // Pending = still an active route target (neither done nor skipped). Driver
+  // POIs are ad-hoc and never drive the automatic nearest/route logic.
   const nearestId = useMemo(() => {
     if (role !== 'driver') return null
-    const isPending = (p) => !p.done && !p.dropped
+    const isPending = (p) => !p.done && !p.dropped && !p.driverPoi
     if (activeTargetId && pois.some((p) => p.id === activeTargetId && isPending(p))) {
       return activeTargetId
     }
@@ -127,7 +129,7 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
 
   // Upcoming pending POIs (route order) and the batch that fits one Google route.
   const pendingPois = useMemo(
-    () => pois.filter((p) => !p.done && !p.dropped),
+    () => pois.filter((p) => !p.done && !p.dropped && !p.driverPoi),
     [pois],
   )
   const batchPois = useMemo(
@@ -154,23 +156,34 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
     (id) => editPoi(id, { done: true, dropped: false }),
     [editPoi],
   )
+  // Auto-done watches every unfinished POI the driver could pass — the whole
+  // pending route plus driver POIs — not just the on-screen bubbles. This way a
+  // drive-by anywhere triggers it, regardless of route order or drive mode.
+  const autoDoneWatchPois = useMemo(
+    () => (role === 'driver' ? pois.filter((p) => !p.done && !p.dropped) : []),
+    [role, pois],
+  )
   const { countdownPoi, countdown, cancel: cancelAutoDone } = useProximityAutoDone(
     role === 'driver' ? location : null,
-    focusPois,
+    autoDoneWatchPois,
     handleAutoDone,
     autoDoneEnabled,
   )
 
-  const doneCount = useMemo(() => pois.filter((p) => p.done).length, [pois])
+  // Route POIs (excludes ad-hoc driver POIs) back the done/total badge.
+  const routePois = useMemo(() => pois.filter((p) => !p.driverPoi), [pois])
+  const doneCount = useMemo(() => routePois.filter((p) => p.done).length, [routePois])
   const droppedCount = useMemo(
-    () => pois.filter((p) => p.dropped && !p.done).length,
-    [pois],
+    () => routePois.filter((p) => p.dropped && !p.done).length,
+    [routePois],
   )
 
   const editingLabel = useMemo(() => {
     if (!editing) return ''
+    if (editing.driverPoi) return '♥'
     let sequence = 0
     for (const poi of pois) {
+      if (poi.driverPoi) continue
       const isDone = poi.id === editing.id ? editing.done : poi.done
       const isDropped = poi.id === editing.id ? editing.dropped : poi.dropped
       const resolved = isDone || isDropped
@@ -202,7 +215,14 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
   }
 
   function handleLongPress(lat, lon) {
-    if (role === 'driver' || routeSelectMode) return
+    if (routeSelectMode) return
+    // Driver long-press drops a magenta-heart driver POI at that spot, then
+    // opens the type/note form. Same gesture the controller uses.
+    if (role === 'driver') {
+      const poi = addPoi(lat, lon, { driverPoi: true })
+      if (poi) setEditing(draftFromPoi(poi, true))
+      return
+    }
     if (placingApproach && editing) {
       setEditing((prev) => ({ ...prev, approach: { lat, lon } }))
       setPlacingApproach(false)
@@ -237,7 +257,7 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
 
   // Next pending POI after `poi` in route order (pending = not done, not dropped).
   function getNextPendingPoi(poi) {
-    const pending = pois.filter((p) => !p.done && !p.dropped)
+    const pending = pois.filter((p) => !p.done && !p.dropped && !p.driverPoi)
     const idx = pending.findIndex((p) => p.id === poi.id)
     return idx >= 0 ? (pending[idx + 1] ?? null) : null
   }
@@ -247,6 +267,24 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
   function handleDriveWithNext(poi) {
     setActiveTargetId(poi.id)
     return navigateToPoiWithNext(poi, getNextPendingPoi(poi))
+  }
+
+  // Driver saved a new/edited driver POI: persist just the type and note. Driver
+  // POIs stay unpublished so they don't trigger the driver's own new-POI toast.
+  function handleDriverPoiSave() {
+    if (!editing) return
+    editPoi(editing.id, { type: editing.type, description: editing.description })
+    setEditing(null)
+  }
+
+  // Driver pressed "Add as Next Stop" on a driver POI: insert it into the live
+  // navigation right after the current target (current → active POI → driver POI).
+  // With no active target it behaves like a plain Drive.
+  function handleAddAsNextStop(poi) {
+    if (activePoi) {
+      return navigateToPoiWithNext(activePoi, poi)
+    }
+    return navigateToPoi(poi)
   }
 
   // Driver pressed "Batch Drive": open one chained route through the batch POIs.
@@ -346,7 +384,7 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
         onOpenRoute={handleOpenRoute}
         doneCount={doneCount}
         droppedCount={droppedCount}
-        totalCount={pois.length}
+        totalCount={routePois.length}
         gpsInterval={gpsInterval}
         onChangeGpsInterval={handleChangeGpsInterval}
         onOpenDriveSwitcher={onOpenDriveSwitcher}
@@ -386,9 +424,26 @@ export default function PoisPage({ role, pairKey, username, onLogout, onOpenDriv
         onClose={() => setAddOpen(false)}
       />
 
+      {role === 'driver' && editing?.driverPoi ? (
+        <DriverPoiDialog
+          key={`driver-${editing.id}`}
+          open={Boolean(editing)}
+          draft={editing}
+          onChange={handleDraftChange}
+          onSave={handleDriverPoiSave}
+          onCancel={handleCancel}
+          onDelete={handleDelete}
+          onDrive={handleDrive}
+          onAddNextStop={handleAddAsNextStop}
+          onMarkDone={handleMarkDone}
+          hasActiveRoute={Boolean(activePoi)}
+          currentLocation={location}
+        />
+      ) : null}
+
       <PoiActionsDialog
         key={editing?.id ?? 'none'}
-        open={Boolean(editing) && !placingApproach}
+        open={Boolean(editing) && !placingApproach && !(role === 'driver' && editing?.driverPoi)}
         draft={editing}
         number={editingLabel}
         role={role}
