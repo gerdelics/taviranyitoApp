@@ -10,6 +10,16 @@
   box-sizing: border-box;
 }
 
+/* Lock the document so the virtual keyboard can't leave the page scrolled up
+   (empty bar under the app after an input in a bottom-sheet modal closes). The
+   app and any scrollable areas manage their own overflow within this box. */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
   background-color: rgb(2 6 23);
@@ -17,7 +27,8 @@ body {
 }
 
 #root {
-  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 /* Safe area utility for PWA status bar */

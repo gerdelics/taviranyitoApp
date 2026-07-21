@@ -1,3 +1,5 @@
+import { useEffect } from 'react'
+
 export default function BaseModal({
   open,
   onClose,
@@ -9,6 +11,15 @@ export default function BaseModal({
   contentClassName,
   zIndexClassName = 'z-[2000]',
 }) {
+  // On mobile, focusing an input inside a fixed bottom-sheet makes the browser
+  // scroll the page up to clear the keyboard; some browsers don't restore it on
+  // close, leaving an empty bar at the bottom. Snap the scroll back when the
+  // modal closes as a cross-platform safety net.
+  useEffect(() => {
+    if (!open) return undefined
+    return () => window.scrollTo(0, 0)
+  }, [open])
+
   if (!open) {
     return null
   }
