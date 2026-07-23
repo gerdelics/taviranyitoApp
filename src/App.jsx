@@ -7,7 +7,7 @@ import PoisPage from './pages/PoisPage'
 import LoginPage from './pages/LoginPage'
 import { APP_VERSION } from './version'
 import { unlockAudio } from './utils/audio'
-import { authReady } from './firebase'
+import { authReady, refreshAuth } from './firebase'
 
 export default function App() {
   const { session, login, logout, switchDrive } = useAuth()
@@ -27,6 +27,22 @@ export default function App() {
       () => setAuthInitialized(true),
       () => setAuthFailed(true),
     )
+  }, [])
+
+  // When the app returns to the foreground (or the network comes back), force a
+  // fresh Firebase token. Mobile OSes freeze the SDK's background refresh, so
+  // after a long background stint the 1-hour anonymous token can lapse and
+  // database calls start failing until it's renewed.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refreshAuth()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('online', refreshAuth)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('online', refreshAuth)
+    }
   }, [])
 
   const offlineMessage = !online
